@@ -265,6 +265,26 @@ textarea.inp{resize:vertical;min-height:70px;}
 .kb-card-a{font-size:12px;color:var(--text-dim);line-height:1.6;}
 .kb-card-src{font-family:var(--mono);font-size:9px;color:var(--purple);margin-top:5px;letter-spacing:.08em;}
 @keyframes gentlePulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+
+/* ── SYNC ── */
+.sync-strip{display:flex;align-items:center;gap:8px;}
+#sync-badge{font-size:11px;color:var(--text-dim);white-space:nowrap;transition:color .3s;}
+.sync-btn{font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;white-space:nowrap;}
+.sync-btn:hover{color:var(--text);border-color:var(--text);}
+/* modal */
+.at-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;}
+.at-overlay.open{display:flex;}
+.at-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px;width:min(460px,93vw);}
+.at-modal h3{font-size:16px;font-weight:700;margin-bottom:4px;}
+.at-sub{font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.6;}
+.at-guide{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--text-dim);line-height:1.9;}
+.at-guide strong{color:var(--text);}
+.at-guide code{background:var(--surface);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px;color:var(--text);}
+.at-field{margin-bottom:12px;}
+.at-field label{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px;}
+.at-field input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;}
+.at-footer{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;}
+.at-danger{font-size:12px;padding:6px 12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:#c0392b;cursor:pointer;margin-right:auto;}
 </style>
 </head>
 <body>
@@ -276,6 +296,10 @@ textarea.inp{resize:vertical;min-height:70px;}
   </div>
   <div class="header-right">
     <div id="live-date">—</div>
+    <div class="sync-strip">
+      <span id="sync-badge">⚪ Not synced</span>
+      <button class="sync-btn" onclick="openAtModal()">☁ Sync</button>
+    </div>
     <div>URD SOLUTIONS · LOCKED IN</div>
   </div>
 </header>
@@ -802,7 +826,139 @@ function load(){
     state.milestones=state.milestones||[];
   }catch(e){}
 }
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
+function save(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  atSchedulePush();
+}
+
+// ══════════════════════════════════════════════════════
+// AIRTABLE SYNC ENGINE
+// ══════════════════════════════════════════════════════
+const AT = {
+  get key()    { return localStorage.getItem('bd_at_key')    || ''; },
+  get base()   { return localStorage.getItem('bd_at_base')   || ''; },
+  get table()  { return localStorage.getItem('bd_at_table')  || ''; },
+  get record() { return localStorage.getItem('bd_at_record') || ''; },
+  set record(v){ localStorage.setItem('bd_at_record', v); },
+};
+
+function atReady(){ return !!(AT.key && AT.base && AT.table); }
+function atUrl(rid){
+  const base = `https://api.airtable.com/v0/${AT.base}/${encodeURIComponent(AT.table)}`;
+  return rid ? `${base}/${rid}` : base;
+}
+function atHeaders(){ return {'Authorization':`Bearer ${AT.key}`,'Content-Type':'application/json'}; }
+
+function setSyncBadge(status, msg){
+  const el = document.getElementById('sync-badge'); if(!el) return;
+  const states = {
+    idle:    {icon:'⚪', label:'Not configured', color:''},
+    syncing: {icon:'🔄', label:'Syncing…',        color:'#b45309'},
+    saved:   {icon:'🟢', label:'Synced',           color:'#27500a'},
+    error:   {icon:'🔴', label: msg||'Sync error', color:'#791f1f'},
+    offline: {icon:'🟡', label:'Offline — saved',  color:'#633806'},
+  };
+  const s = states[status] || states.idle;
+  el.textContent = `${s.icon} ${s.label}`;
+  el.style.color = s.color;
+}
+
+let _atTimer = null;
+function atSchedulePush(){ clearTimeout(_atTimer); _atTimer = setTimeout(atPush, 1800); }
+
+// Merge ALL localStorage stores into one payload
+function buildPayload(){
+  return {
+    main:  JSON.parse(localStorage.getItem(STORAGE_KEY)         || '{}'),
+    omega: JSON.parse(localStorage.getItem('burhan-omega-v1')   || '{}'),
+    kb:    JSON.parse(localStorage.getItem(KB_STORAGE_KEY)      || '{}'),
+  };
+}
+
+function applyPayload(remote){
+  if(remote.main  && Object.keys(remote.main).length)  { localStorage.setItem(STORAGE_KEY, JSON.stringify(remote.main)); Object.assign(state, remote.main); }
+  if(remote.omega && Object.keys(remote.omega).length) { localStorage.setItem('burhan-omega-v1', JSON.stringify(remote.omega)); Object.assign(omegaState, remote.omega); }
+  if(remote.kb    && Object.keys(remote.kb).length)    { localStorage.setItem(KB_STORAGE_KEY, JSON.stringify(remote.kb)); Object.assign(kbState, remote.kb); }
+}
+
+async function atPull(){
+  if(!atReady()){ setSyncBadge('idle'); return; }
+  setSyncBadge('syncing');
+  try {
+    let data;
+    if(AT.record){
+      const r = await fetch(atUrl(AT.record), {headers: atHeaders()});
+      data = await r.json();
+      if(data.error) throw new Error(data.error.message);
+      applyPayload(JSON.parse(data.fields.StateJSON || '{}'));
+    } else {
+      const r = await fetch(atUrl() + `?maxRecords=1&filterByFormula={StorageKey}="${STORAGE_KEY}"`, {headers: atHeaders()});
+      data = await r.json();
+      if(data.error) throw new Error(data.error.message);
+      if(data.records && data.records.length){
+        AT.record = data.records[0].id;
+        applyPayload(JSON.parse(data.records[0].fields.StateJSON || '{}'));
+      }
+    }
+    setSyncBadge('saved');
+  } catch(e){
+    setSyncBadge(navigator.onLine ? 'error' : 'offline', e.message);
+  }
+}
+
+async function atPush(){
+  if(!atReady()) return;
+  setSyncBadge('syncing');
+  const fields = { StorageKey: STORAGE_KEY, StateJSON: JSON.stringify(buildPayload()) };
+  try {
+    let r, data;
+    if(AT.record){
+      r = await fetch(atUrl(AT.record), {method:'PATCH', headers:atHeaders(), body:JSON.stringify({fields})});
+    } else {
+      r = await fetch(atUrl(), {method:'POST', headers:atHeaders(), body:JSON.stringify({fields})});
+    }
+    data = await r.json();
+    if(data.error) throw new Error(data.error.message);
+    if(!AT.record && data.id) AT.record = data.id;
+    setSyncBadge('saved');
+  } catch(e){
+    setSyncBadge(navigator.onLine ? 'error' : 'offline', e.message);
+  }
+}
+
+function openAtModal(){
+  document.getElementById('at-modal').classList.add('open');
+  document.getElementById('at-inp-key').value   = AT.key;
+  document.getElementById('at-inp-base').value  = AT.base;
+  document.getElementById('at-inp-table').value = AT.table;
+}
+function closeAtModal(){ document.getElementById('at-modal').classList.remove('open'); }
+
+async function saveAtCreds(){
+  const k = document.getElementById('at-inp-key').value.trim();
+  const b = document.getElementById('at-inp-base').value.trim();
+  const t = document.getElementById('at-inp-table').value.trim();
+  if(!k||!b||!t){ alert('Please fill all three fields.'); return; }
+  localStorage.setItem('bd_at_key',   k);
+  localStorage.setItem('bd_at_base',  b);
+  localStorage.setItem('bd_at_table', t);
+  localStorage.removeItem('bd_at_record');
+  closeAtModal();
+  await atPull();
+  // Re-render everything after pull
+  renderTasks(); renderFE(); renderBusiness(); renderPodcast(); renderOverview(); renderPomoLog();
+  loadNotes(); renderMilestones(); loadOmega(); loadKB();
+}
+
+function clearAtCreds(){
+  if(!confirm('Remove Airtable credentials? Your data stays locally.')) return;
+  ['bd_at_key','bd_at_base','bd_at_table','bd_at_record'].forEach(k=>localStorage.removeItem(k));
+  closeAtModal();
+  setSyncBadge('idle');
+}
+// ══════════════════════════════════════════════════════
+
+
 
 // ── TABS ──
 function switchTab(el,name){
@@ -1415,6 +1571,13 @@ loadNotes();renderMilestones();
 updatePomoDisplay();
 loadOmega();
 loadKB();
+// Pull latest from Airtable in background — non-blocking
+(async()=>{
+  await atPull();
+  // Re-render with remote data
+  renderTasks();renderFE();renderBusiness();renderPodcast();renderOverview();renderPomoLog();
+  loadNotes();renderMilestones();loadOmega();loadKB();
+})();
 
 // ══════════════════════════════════════
 // OMEGA PSI PHI KNOWLEDGE SYSTEM
@@ -1509,7 +1672,7 @@ function loadKB(){
     if(r) kbState = JSON.parse(r);
   } catch(e){}
 }
-function saveKB(){ try{localStorage.setItem(KB_STORAGE_KEY, JSON.stringify(kbState));}catch(e){console.warn('KB save failed',e);} }
+function saveKB(){ try{localStorage.setItem(KB_STORAGE_KEY, JSON.stringify(kbState));}catch(e){console.warn('KB save failed',e);} atSchedulePush(); }
 
 function handleKBDrop(e){
   e.preventDefault();
@@ -1783,7 +1946,7 @@ function loadOmega(){
   if(!r)return;
   try{Object.assign(omegaState,JSON.parse(r));}catch(e){}
 }
-function saveOmega(){localStorage.setItem('burhan-omega-v1',JSON.stringify(omegaState));}
+function saveOmega(){localStorage.setItem('burhan-omega-v1',JSON.stringify(omegaState)); atSchedulePush();}
 
 function saveOmegaNotes(){
   omegaState.omegaNotes=document.getElementById('omega-notes').value;
@@ -2078,5 +2241,32 @@ async function askOmegaScholar(){
 }
 
 </script>
+<!-- ── AIRTABLE SYNC MODAL ── -->
+<div class="at-overlay" id="at-modal">
+  <div class="at-modal">
+    <h3>☁ Airtable Sync</h3>
+    <p class="at-sub">Sync your Command Center across every device — phone, laptop, tablet. Set it up once per device, then it's automatic.</p>
+    <div class="at-guide">
+      <strong>One-time setup:</strong><br>
+      1. Go to <strong>airtable.com</strong> → free account<br>
+      2. Create a <strong>Base</strong> (e.g. "Burhan Command Center")<br>
+      3. Add two fields to the default table:<br>
+      &nbsp;&nbsp;• <code>StorageKey</code> — Single line text<br>
+      &nbsp;&nbsp;• <code>StateJSON</code> — Long text<br>
+      4. Go to <strong>airtable.com/create/tokens</strong> → token with <code>data.records:read</code> + <code>data.records:write</code> scopes<br>
+      5. Base ID is in the URL: <code>airtable.com/<strong>appXXXXXX</strong>/...</code> — copy only that part
+    </div>
+    <div class="at-field"><label>Personal Access Token</label><input type="password" id="at-inp-key" placeholder="patXXXXXXXXXXXXXX"/></div>
+    <div class="at-field"><label>Base ID</label><input type="text" id="at-inp-base" placeholder="appXXXXXXXXXXXXXX"/></div>
+    <div class="at-field"><label>Table Name</label><input type="text" id="at-inp-table" placeholder="Table 1"/></div>
+    <div class="at-footer">
+      <button class="at-danger" onclick="clearAtCreds()">Clear credentials</button>
+      <button class="btn-ghost" onclick="closeAtModal()">Cancel</button>
+      <button class="btn-ghost" onclick="atPush()">Sync now</button>
+      <button class="btn-primary" onclick="saveAtCreds()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
