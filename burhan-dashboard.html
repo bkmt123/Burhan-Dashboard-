@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Burhan — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0D0F12; --surface:#141720; --card:#1A1E2A; --border:#262B3A;
+  --accent:#4F8EF7; --gold:#C9A84C; --green:#3FCF8E; --red:#E05C5C;
+  --purple:#A478E8; --pink:#E878A0;
+  --muted:#5A6278; --text:#E8EAF2; --text-dim:#8B90A8;
+  --mono:'IBM Plex Mono',monospace; --display:'Syne',sans-serif; --body:'Inter',sans-serif;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;font-size:14px;line-height:1.6;}
+
+/* HEADER */
+header{padding:24px 32px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.header-left{display:flex;flex-direction:column;gap:3px;}
+.header-label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;}
+.header-title{font-family:var(--display);font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1;}
+.header-right{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:right;}
+#live-date{color:var(--accent);}
+
+/* NAV */
+nav{display:flex;gap:2px;padding:10px 32px 0;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav::-webkit-scrollbar{display:none;}
+.tab{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:7px 14px 9px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* MAIN */
+main{padding:26px 32px;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* SECTION HEAD */
+.section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.section-head h2{font-family:var(--display);font-size:20px;font-weight:700;}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;letter-spacing:.1em;text-transform:uppercase;}
+.badge-blue{background:rgba(79,142,247,.15);color:var(--accent);}
+.badge-gold{background:rgba(201,168,76,.15);color:var(--gold);}
+.badge-green{background:rgba(63,207,142,.15);color:var(--green);}
+.badge-purple{background:rgba(164,120,232,.15);color:var(--purple);}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+@media(max-width:900px){.grid-4{grid-template-columns:1fr 1fr;}}
+@media(max-width:640px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}main{padding:18px 14px;}header{padding:16px 14px 12px;}nav{padding:8px 14px 0;}}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px;}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;}
+
+/* STAT BLOCK */
+.stat-block{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;flex-direction:column;gap:4px;}
+.stat-val{font-family:var(--display);font-size:30px;font-weight:800;line-height:1;}
+.stat-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase;}
+.c-blue{color:var(--accent);}.c-gold{color:var(--gold);}.c-green{color:var(--green);}.c-purple{color:var(--purple);}.c-pink{color:var(--pink);}
+
+/* INPUTS */
+.inp{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-family:var(--body);font-size:13px;color:var(--text);outline:none;transition:border-color .15s;width:100%;}
+.inp:focus{border-color:var(--accent);}
+.inp::placeholder{color:var(--muted);}
+select.inp{cursor:pointer;}
+textarea.inp{resize:vertical;min-height:70px;}
+
+/* BUTTONS */
+.btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+.btn:hover{opacity:.85;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;transition:border-color .15s,color .15s;}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-gold{background:var(--gold);color:#0D0F12;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-green{background:var(--green);color:#0D0F12;}
+
+/* TASK */
+.task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);animation:fadeIn .2s ease;}
+.task-item:last-child{border-bottom:none;}
+.task-check{width:16px;height:16px;border:2px solid var(--border);border-radius:4px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;}
+.task-check.done{background:var(--green);border-color:var(--green);}
+.task-check.done::after{content:'✓';font-size:10px;color:#fff;font-weight:700;}
+.task-text{flex:1;font-size:13px;}
+.task-text.done{text-decoration:line-through;color:var(--muted);}
+.task-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0 4px;}
+.task-del:hover{color:var(--red);}
+
+/* FE */
+.topic-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.topic-row:last-child{border-bottom:none;}
+.topic-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.topic-name{flex:1;font-size:13px;}
+.topic-status{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;}
+.st-done{background:rgba(63,207,142,.12);color:var(--green);}
+.st-active{background:rgba(79,142,247,.12);color:var(--accent);}
+.st-todo{background:rgba(90,98,120,.15);color:var(--muted);}
+.progress-track{height:6px;background:var(--border);border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#7AB8FF);transition:width .6s ease;}
+
+/* POMODORO */
+.pomo-ring{position:relative;width:160px;height:160px;margin:0 auto 20px;}
+.pomo-ring svg{transform:rotate(-90deg);}
+.pomo-ring-bg{fill:none;stroke:var(--border);stroke-width:8;}
+.pomo-ring-fill{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .5s linear,stroke .3s;}
+.pomo-time{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.pomo-time-num{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1;}
+.pomo-time-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase;margin-top:2px;}
+.pomo-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.pomo-mode-row{display:flex;gap:6px;justify-content:center;margin-bottom:16px;}
+.pomo-mode-btn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s;}
+.pomo-mode-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.1);}
+.pomo-session-log{max-height:130px;overflow-y:auto;scrollbar-width:thin;}
+.pomo-log-item{font-family:var(--mono);font-size:11px;color:var(--text-dim);padding:4px 0;border-bottom:1px solid var(--border);}
+
+/* BUSINESS CARD */
+.biz-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px;position:relative;overflow:hidden;}
+.biz-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.biz-urd::before{background:var(--accent);}
+.biz-acq::before{background:var(--gold);}
+.biz-pod::before{background:var(--purple);}
+.biz-title{font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:4px;}
+.biz-sub{font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5;}
+.kpi-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+.kpi{display:flex;flex-direction:column;gap:2px;}
+.kpi-val{font-family:var(--mono);font-size:18px;font-weight:600;}
+.kpi-lbl{font-size:10px;color:var(--text-dim);letter-spacing:.08em;}
+
+/* PIPELINE KANBAN */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;}
+@media(max-width:900px){.kanban{grid-template-columns:1fr 1fr;}}
+@media(max-width:640px){.kanban{grid-template-columns:1fr;}}
+.kanban-col{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.kanban-col-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.kanban-count{background:var(--border);border-radius:99px;font-size:10px;padding:1px 7px;color:var(--text-dim);}
+.deal-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;animation:fadeIn .2s ease;cursor:grab;}
+.deal-card:last-child{margin-bottom:0;}
+.deal-name{font-size:13px;font-weight:600;margin-bottom:3px;}
+.deal-meta{font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+.deal-actions{display:flex;gap:6px;margin-top:8px;}
+.deal-btn{font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s;}
+.deal-btn:hover{border-color:var(--gold);color:var(--gold);}
+.deal-btn.del:hover{border-color:var(--red);color:var(--red);}
+
+/* PODCAST */
+.ep-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;animation:fadeIn .2s ease;}
+.ep-header{display:flex;align-items:flex-start;gap:12px;}
+.ep-num{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--purple);line-height:1;min-width:36px;}
+.ep-info{flex:1;}
+.ep-title{font-size:14px;font-weight:600;margin-bottom:2px;}
+.ep-guest{font-size:12px;color:var(--text-dim);}
+.ep-status-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;margin-left:auto;flex-shrink:0;}
+.ep-idea{background:rgba(90,98,120,.2);color:var(--muted);}
+.ep-scheduled{background:rgba(201,168,76,.12);color:var(--gold);}
+.ep-recorded{background:rgba(164,120,232,.12);color:var(--purple);}
+.ep-published{background:rgba(63,207,142,.12);color:var(--green);}
+.ep-footer{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);}
+.ep-date{font-family:var(--mono);font-size:10px;color:var(--text-dim);flex:1;}
+
+/* MILESTONE */
+.milestone{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.milestone:last-child{border-bottom:none;}
+.ml-dot-col{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.ml-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:3px;}
+.ml-dot.done{background:var(--green);border-color:var(--green);}
+.ml-dot.active{background:var(--accent);border-color:var(--accent);}
+.ml-dot.future{border-color:var(--muted);}
+.ml-line{width:1px;flex:1;background:var(--border);min-height:16px;}
+.ml-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.ml-date{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:3px;}
+.ml-note{font-size:12px;color:var(--text-dim);}
+
+/* RECURRING TEMPLATES */
+.tmpl-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.tmpl-item:last-child{border-bottom:none;}
+.tmpl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.tmpl-name{flex:1;font-size:13px;}
+.tmpl-freq{font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+
+/* MISC */
+.divider{margin:20px 0;border:none;border-top:1px solid var(--border);}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}.mt20{margin-top:20px;}.mb12{margin-bottom:12px;}.mb16{margin-bottom:16px;}
+.col{display:flex;flex-direction:column;gap:8px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;width:100%;max-width:460px;}
+.modal h3{font-family:var(--display);font-size:18px;font-weight:700;margin-bottom:16px;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.field label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);}
+
+/* ── OMEGA LEARNING ── */
+.omega-header-bar{background:linear-gradient(135deg,rgba(79,61,0,.35),rgba(100,0,0,.2));border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.omega-crest{font-size:44px;line-height:1;flex-shrink:0;}
+.omega-header-title{font-family:var(--display);font-size:22px;font-weight:800;color:var(--gold);letter-spacing:-.01em;}
+.omega-header-sub{font-size:12px;color:var(--text-dim);margin-top:3px;}
+.omega-streak-badge{margin-left:auto;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.28);border-radius:6px;padding:8px 14px;text-align:center;flex-shrink:0;}
+.omega-streak-num{font-family:var(--display);font-size:26px;font-weight:800;color:var(--gold);line-height:1;}
+.omega-streak-label{font-size:10px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;}
+.flashcard-wrap{perspective:1000px;cursor:pointer;margin-bottom:14px;}
+.flashcard{position:relative;height:190px;transform-style:preserve-3d;transition:transform .5s ease;border-radius:10px;}
+.flashcard.flipped{transform:rotateY(180deg);}
+.flashcard-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;text-align:center;}
+.flashcard-front{background:linear-gradient(135deg,#1a1400,#150800);border:1px solid rgba(201,168,76,.3);}
+.flashcard-back{background:linear-gradient(135deg,#0e1a00,#001508);border:1px solid rgba(63,207,142,.3);transform:rotateY(180deg);}
+.fc-label{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;opacity:.65;}
+.flashcard-front .fc-label{color:var(--gold);}
+.flashcard-back .fc-label{color:var(--green);}
+.fc-text{font-size:14px;font-weight:600;line-height:1.5;color:var(--text);}
+.fc-answer{font-size:13px;line-height:1.6;color:var(--green);}
+.fc-hint{font-size:11px;color:var(--muted);margin-top:10px;font-style:italic;}
+.quiz-question{font-size:14px;font-weight:600;margin-bottom:14px;line-height:1.6;color:var(--text);}
+.quiz-option{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text);cursor:pointer;margin-bottom:8px;transition:all .15s;}
+.quiz-option:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.quiz-option.correct{background:rgba(63,207,142,.1);border-color:var(--green);color:var(--green);}
+.quiz-option.wrong{background:rgba(224,92,92,.1);border-color:var(--red);color:var(--red);}
+.quiz-option:disabled{cursor:default;}
+.quiz-feedback{font-size:13px;padding:10px 14px;border-radius:6px;margin-top:2px;font-weight:600;}
+.qf-right{background:rgba(63,207,142,.1);color:var(--green);}
+.qf-wrong{background:rgba(224,92,92,.1);color:var(--red);}
+.daily-lesson-card{background:linear-gradient(135deg,rgba(201,168,76,.07),rgba(100,0,0,.04));border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:20px;}
+.dlc-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.dlc-title{font-family:var(--display);font-size:18px;font-weight:800;margin-bottom:10px;color:var(--gold);}
+.dlc-body{font-size:13px;color:var(--text-dim);line-height:1.9;}
+.dlc-body strong{color:var(--text);}
+.omega-cat-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.omega-cat{font-family:var(--mono);font-size:10px;padding:4px 12px;border-radius:99px;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;}
+.omega-cat:hover{border-color:var(--gold);color:var(--gold);}
+.omega-cat.active{background:rgba(201,168,76,.12);border-color:var(--gold);color:var(--gold);}
+.know-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:8px;padding:14px 16px;margin-bottom:10px;animation:fadeIn .2s ease;}
+.know-card-title{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text);}
+.know-card-body{font-size:12px;color:var(--text-dim);line-height:1.7;}
+.know-card-tag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(201,168,76,.1);color:var(--gold);margin-top:6px;display:inline-block;letter-spacing:.08em;}
+.omega-chat-log{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;scrollbar-width:thin;}
+.chat-bubble{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;max-width:92%;}
+.chat-bubble.user{background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2);color:var(--text);align-self:flex-end;}
+.chat-bubble.ai{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.15);color:var(--text-dim);align-self:flex-start;white-space:pre-wrap;}
+.chat-bubble.ai em{color:var(--gold);font-style:normal;font-weight:600;}
+.progress-bar-wrap{margin-bottom:14px;}
+.progress-bar-label{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px;}
+.progress-bar-track{height:5px;background:var(--border);border-radius:99px;overflow:hidden;}
+.progress-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),#E8C87A);transition:width .5s ease;}
+
+/* KB File items */
+.kb-file-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 14px;animation:fadeIn .2s ease;}
+.kb-file-icon{font-size:18px;flex-shrink:0;}
+.kb-file-info{flex:1;min-width:0;}
+.kb-file-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kb-file-meta{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;}
+.kb-file-status{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;flex-shrink:0;}
+.kb-status-processing{background:rgba(79,142,247,.12);color:var(--accent);}
+.kb-status-done{background:rgba(63,207,142,.12);color:var(--green);}
+.kb-status-error{background:rgba(224,92,92,.12);color:var(--red);}
+.kb-del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;}
+.kb-del-btn:hover{color:var(--red);}
+.kb-card-item{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:7px;padding:12px 14px;margin-bottom:8px;animation:fadeIn .2s ease;}
+.kb-card-q{font-size:13px;font-weight:600;margin-bottom:4px;}
+.kb-card-a{font-size:12px;color:var(--text-dim);line-height:1.6;}
+.kb-card-src{font-family:var(--mono);font-size:9px;color:var(--purple);margin-top:5px;letter-spacing:.08em;}
+@keyframes gentlePulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="header-label">Command Center</span>
+    <span class="header-title">Burhan's Dashboard</span>
+  </div>
+  <div class="header-right">
+    <div id="live-date">—</div>
+    <div>URD SOLUTIONS · LOCKED IN</div>
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" data-tab="overview" onclick="switchTab(this,'overview')">Overview</button>
+  <button class="tab" data-tab="tasks" onclick="switchTab(this,'tasks')">Daily Tasks</button>
+  <button class="tab" data-tab="fe" onclick="switchTab(this,'fe')">FE Study</button>
+  <button class="tab" data-tab="business" onclick="switchTab(this,'business')">Business</button>
+  <button class="tab" data-tab="podcast" onclick="switchTab(this,'podcast')">Podcast</button>
+  <button class="tab" data-tab="life" onclick="switchTab(this,'life')">Life Plan</button>
+  <button class="tab" data-tab="omega" onclick="switchTab(this,'omega')">Ω Omega</button>
+</nav>
+
+<main>
+
+<!-- ═══ OVERVIEW ═══ -->
+<div class="panel active" id="panel-overview">
+  <div class="section-head">
+    <h2>Today's Snapshot</h2>
+    <span class="badge badge-blue" id="ov-date-badge">—</span>
+  </div>
+  <div class="grid-4 mb16">
+    <div class="stat-block"><span class="stat-val c-blue" id="ov-tasks-done">0/0</span><span class="stat-label">Tasks Done Today</span></div>
+    <div class="stat-block"><span class="stat-val c-gold" id="ov-fe-pct">0%</span><span class="stat-label">FE Study Progress</span></div>
+    <div class="stat-block"><span class="stat-val c-purple" id="ov-ep-count">0</span><span class="stat-label">Podcast Episodes</span></div>
+    <div class="stat-block"><span class="stat-val c-green" id="ov-deal-count">0</span><span class="stat-label">Deals in Pipeline</span></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Pending Tasks Today</div>
+      <div id="ov-task-list"><span style="color:var(--text-dim);font-size:13px;">No tasks yet.</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">FE — Next Up</div>
+      <div id="ov-fe-next"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DAILY TASKS ═══ -->
+<div class="panel" id="panel-tasks">
+  <div class="section-head"><h2>Daily Tasks</h2><span class="badge badge-blue">Today</span></div>
+
+  <!-- Recurring Templates -->
+  <div class="card mb16">
+    <div class="card-title">Recurring Templates — Quick Add</div>
+    <div id="tmpl-list"></div>
+    <div class="row mt12">
+      <input class="inp" id="tmpl-name-inp" placeholder="Template name…" style="flex:1;" onkeydown="if(event.key==='Enter')addTemplate()"/>
+      <select class="inp" id="tmpl-cat-inp" style="max-width:130px;">
+        <option value="work">Work</option>
+        <option value="fe">FE Study</option>
+        <option value="business">Business</option>
+        <option value="personal">Personal</option>
+        <option value="podcast">Podcast</option>
+      </select>
+      <select class="inp" id="tmpl-freq-inp" style="max-width:120px;">
+        <option value="daily">Daily</option>
+        <option value="weekdays">Weekdays</option>
+        <option value="weekly">Weekly</option>
+      </select>
+      <button class="btn" onclick="addTemplate()">+ Template</button>
+    </div>
+  </div>
+
+  <!-- Add Task -->
+  <div class="card mb16">
+    <div class="card-title">Add Task</div>
+    <div class="row">
+      <input class="inp" id="task-input" placeholder="e.g. Review RFI log for Hillsdale…" style="flex:1;" onkeydown="if(event.key==='Enter')addTask()"/>
+      <select class="inp" id="task-cat" style="max-width:130px;">
+        <option value="work">Work</option>
+        <option value="fe">FE Study</option>
+        <option value="business">Business</option>
+        <option value="personal">Personal</option>
+        <option value="podcast">Podcast</option>
+      </select>
+      <button class="btn" onclick="addTask()">+ Add</button>
+    </div>
+  </div>
+
+  <div id="task-sections"></div>
+</div>
+
+<!-- ═══ FE STUDY ═══ -->
+<div class="panel" id="panel-fe">
+  <div class="section-head"><h2>FE Exam Prep</h2><span class="badge badge-gold">Civil / Other Disciplines</span></div>
+  <div class="grid-4 mb16">
+    <div class="stat-block"><span class="stat-val c-blue" id="fe-done-count">0</span><span class="stat-label">Completed</span></div>
+    <div class="stat-block"><span class="stat-val c-gold" id="fe-active-count">0</span><span class="stat-label">In Progress</span></div>
+    <div class="stat-block"><span class="stat-val" style="color:var(--muted)" id="fe-todo-count">0</span><span class="stat-label">To Do</span></div>
+    <div class="stat-block"><span class="stat-val c-green" id="fe-days-left">—</span><span class="stat-label">Days to Exam</span></div>
+  </div>
+
+  <div class="card mb16">
+    <div class="card-title">Overall Progress</div>
+    <div class="progress-track" style="height:8px;margin-bottom:10px;">
+      <div class="progress-fill" id="fe-overall-bar" style="width:0%;"></div>
+    </div>
+    <div class="row" style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">
+      Target exam date:
+      <input type="date" id="fe-target-date" onchange="saveFEDate()" class="inp" style="max-width:160px;font-size:11px;padding:4px 8px;"/>
+    </div>
+  </div>
+
+  <!-- Pomodoro + Topics -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Study Topics — click to cycle status</div>
+      <div id="fe-topic-list"></div>
+    </div>
+
+    <div>
+      <!-- POMODORO -->
+      <div class="card mb16">
+        <div class="card-title">Pomodoro Timer</div>
+        <div class="pomo-mode-row">
+          <button class="pomo-mode-btn active" onclick="setPomoMode('focus',25,this)">Focus 25</button>
+          <button class="pomo-mode-btn" onclick="setPomoMode('short',5,this)">Short Break 5</button>
+          <button class="pomo-mode-btn" onclick="setPomoMode('long',15,this)">Long Break 15</button>
+        </div>
+        <div class="pomo-ring">
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle class="pomo-ring-bg" cx="80" cy="80" r="68"/>
+            <circle class="pomo-ring-fill" id="pomo-arc" cx="80" cy="80" r="68"
+              stroke="var(--accent)"
+              stroke-dasharray="427.26"
+              stroke-dashoffset="0"/>
+          </svg>
+          <div class="pomo-time">
+            <div class="pomo-time-num" id="pomo-display">25:00</div>
+            <div class="pomo-time-label" id="pomo-mode-label">FOCUS</div>
+          </div>
+        </div>
+        <div class="pomo-btns">
+          <button class="btn" id="pomo-start-btn" onclick="togglePomo()">Start</button>
+          <button class="btn-ghost" onclick="resetPomo()">Reset</button>
+        </div>
+        <div class="card-title mt12">Session Log</div>
+        <div class="pomo-session-log" id="pomo-log"><div class="pomo-log-item" style="color:var(--muted);">No sessions yet today.</div></div>
+      </div>
+
+      <!-- FE Notes -->
+      <div class="card">
+        <div class="card-title">Study Notes</div>
+        <textarea class="inp" id="fe-notes" placeholder="Log what you studied today…" style="min-height:120px;" oninput="saveFENotes()"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BUSINESS ═══ -->
+<div class="panel" id="panel-business">
+  <div class="section-head"><h2>Ventures</h2><span class="badge badge-gold">Active</span></div>
+
+  <!-- URD Solutions -->
+  <div class="biz-card biz-urd mb16">
+    <div class="biz-title">URD Solutions</div>
+    <div class="biz-sub">Construction PM / Project Services</div>
+
+    <!-- Active Projects -->
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span class="kpi-lbl" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;">Active Projects</span>
+        <span id="urd-proj-count" style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent);">0</span>
+        <button class="btn-ghost" style="padding:3px 10px;font-size:11px;margin-left:auto;" onclick="openAddProjectModal()">+ Add Project</button>
+      </div>
+      <div id="urd-project-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+
+    <div class="kpi-row" style="margin-bottom:14px;">
+      <div class="kpi" style="display:flex;flex-direction:column;gap:4px;">
+        <span class="kpi-lbl">Open RFIs</span>
+        <input class="inp" id="urd-rfis" placeholder="0" style="width:80px;font-size:16px;font-family:var(--mono);color:var(--accent);font-weight:600;padding:4px 8px;" oninput="saveKPI('urd-rfis')"/>
+      </div>
+      <div class="kpi" style="display:flex;flex-direction:column;gap:4px;">
+        <span class="kpi-lbl">Subcontractors</span>
+        <input class="inp" id="urd-subs" placeholder="0" style="width:80px;font-size:16px;font-family:var(--mono);color:var(--accent);font-weight:600;padding:4px 8px;" oninput="saveKPI('urd-subs')"/>
+      </div>
+    </div>
+    <textarea class="inp" id="urd-notes" placeholder="Action items, next steps, wins…" style="min-height:80px;" oninput="saveNote('urd-notes')"></textarea>
+  </div>
+
+  <!-- Acquisitions Pipeline -->
+  <div class="biz-card biz-acq">
+    <div class="biz-title">Acquisitions Pipeline</div>
+    <div class="biz-sub">Business &amp; asset deal flow — from prospecting to closed</div>
+    <button class="btn btn-gold" onclick="openDealModal()">+ New Deal</button>
+    <div class="kanban" id="kanban-board"></div>
+  </div>
+</div>
+
+<!-- ═══ PODCAST ═══ -->
+<div class="panel" id="panel-podcast">
+  <div class="section-head"><h2>Locks &amp; Loaded</h2><span class="badge badge-purple">Podcast</span></div>
+  <div class="grid-4 mb16">
+    <div class="stat-block"><span class="stat-val c-purple" id="pod-total">0</span><span class="stat-label">Total Episodes</span></div>
+    <div class="stat-block"><span class="stat-val c-gold" id="pod-scheduled">0</span><span class="stat-label">Scheduled</span></div>
+    <div class="stat-block"><span class="stat-val c-green" id="pod-published">0</span><span class="stat-label">Published</span></div>
+    <div class="stat-block"><span class="stat-val" style="color:var(--muted);" id="pod-ideas">0</span><span class="stat-label">Ideas</span></div>
+  </div>
+
+  <div class="row mb16">
+    <button class="btn" onclick="openEpModal()">+ New Episode</button>
+    <select class="inp" id="pod-filter" style="max-width:160px;" onchange="renderPodcast()">
+      <option value="all">All Episodes</option>
+      <option value="idea">Ideas</option>
+      <option value="scheduled">Scheduled</option>
+      <option value="recorded">Recorded</option>
+      <option value="published">Published</option>
+    </select>
+  </div>
+
+  <div id="ep-list"></div>
+</div>
+
+<!-- ═══ LIFE PLAN ═══ -->
+<div class="panel" id="panel-life">
+  <div class="section-head" style="justify-content:space-between;">
+    <div style="display:flex;align-items:baseline;gap:12px;">
+      <h2>Life Plan</h2><span class="badge badge-green">Long-Term Vision</span>
+    </div>
+    <button class="btn-ghost" onclick="openMilestoneModal()" style="font-size:11px;">+ Add Milestone</button>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Milestones</div>
+      <div id="milestone-list"></div>
+      <div id="milestone-empty" style="display:none;color:var(--muted);font-size:13px;padding:10px 0;">No milestones yet — add your first one above.</div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="card-title">Vision Statement</div>
+        <textarea class="inp" id="vision-notes" placeholder="Write your vision — where you're going and why…" style="min-height:130px;" oninput="saveNote('vision-notes')"></textarea>
+      </div>
+      <div class="card">
+        <div class="card-title">Gratitude / Reflection</div>
+        <textarea class="inp" id="reflection-notes" placeholder="What are you grateful for today? What are you learning?" style="min-height:100px;" oninput="saveNote('reflection-notes')"></textarea>
+      </div>
+      <div class="card">
+        <div class="card-title">Marriage &amp; Life Planning Notes</div>
+        <textarea class="inp" id="life-notes" placeholder="Intentions, timelines, qualities, duas…" style="min-height:100px;" oninput="saveNote('life-notes')"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ OMEGA LEARNING ═══ -->
+<div class="panel" id="panel-omega">
+
+  <div class="omega-header-bar">
+    <div class="omega-crest">Ω</div>
+    <div>
+      <div class="omega-header-title">Omega Psi Phi · Knowledge Hub</div>
+      <div class="omega-header-sub">Manhood · Scholarship · Perseverance · Uplift — Founded November 17, 1911 · Howard University</div>
+    </div>
+    <div class="omega-streak-badge">
+      <div class="omega-streak-num" id="omega-streak">0</div>
+      <div class="omega-streak-label">Day Streak</div>
+    </div>
+  </div>
+
+  <!-- Progress across categories -->
+  <div class="card mb16">
+    <div class="card-title">Knowledge Progress</div>
+    <div id="omega-progress-bars"></div>
+  </div>
+
+  <div class="grid-2 mb16">
+
+    <!-- Daily Lesson -->
+    <div>
+      <div class="daily-lesson-card mb16" id="daily-lesson-card">
+        <div class="dlc-eyebrow" id="dl-eyebrow">Daily Lesson</div>
+        <div class="dlc-title" id="dl-title">Loading…</div>
+        <div class="dlc-body" id="dl-body"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn" onclick="nextDailyLesson()">Next Lesson →</button>
+        <button class="btn-ghost" onclick="markLessonLearned()">✓ Mark Learned</button>
+      </div>
+
+      <!-- Flashcards -->
+      <div class="card">
+        <div class="card-title">Flashcard Drill — Click to Flip</div>
+        <div class="omega-cat-row" id="fc-cat-row"></div>
+        <div class="flashcard-wrap" onclick="flipCard()">
+          <div class="flashcard" id="flashcard">
+            <div class="flashcard-face flashcard-front">
+              <div class="fc-label">Question</div>
+              <div class="fc-text" id="fc-question">Click a category to begin</div>
+              <div class="fc-hint">tap to reveal answer</div>
+            </div>
+            <div class="flashcard-face flashcard-back">
+              <div class="fc-label">Answer</div>
+              <div class="fc-answer" id="fc-answer">—</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <button class="btn-ghost" onclick="prevCard()">← Prev</button>
+          <span id="fc-counter" style="font-family:var(--mono);font-size:11px;color:var(--muted);align-self:center;">0 / 0</span>
+          <button class="btn-ghost" onclick="nextCard()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: Quiz + AI Ask -->
+    <div class="col">
+
+      <!-- Quiz -->
+      <div class="card">
+        <div class="card-title">Quick Quiz</div>
+        <div id="quiz-area">
+          <div style="color:var(--text-dim);font-size:13px;">Select a flashcard category to start a quiz.</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn-ghost" onclick="startQuiz()">New Question</button>
+          <span id="quiz-score-display" style="font-family:var(--mono);font-size:11px;color:var(--muted);align-self:center;margin-left:auto;">Score: <span id="quiz-right">0</span> / <span id="quiz-total">0</span></span>
+        </div>
+      </div>
+
+      <!-- AI Omega Scholar -->
+      <div class="card">
+        <div class="card-title">Ask the Omega Scholar — AI</div>
+        <div class="omega-chat-log" id="omega-chat-log">
+          <div class="chat-bubble ai">Que Psi Phi! I'm your Omega Scholar. Ask me anything about the history, traditions, founders, Cardinal Principles, chapters, notable members, or culture of Omega Psi Phi Fraternity, Inc.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input class="inp" id="omega-ask-inp" placeholder="Ask about founders, rituals, history, chapters…" style="flex:1;" onkeydown="if(event.key==='Enter')askOmegaScholar()"/>
+          <button class="btn btn-gold" onclick="askOmegaScholar()">Ask</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Knowledge Library -->
+  <div class="card">
+    <div class="card-title">Knowledge Library — Browse & Study</div>
+    <div class="omega-cat-row" id="lib-cat-row"></div>
+    <div id="knowledge-library"></div>
+  </div>
+
+  <!-- Private Knowledge Base -->
+  <div class="card mt16" style="border-color:rgba(201,168,76,.3);background:linear-gradient(135deg,rgba(201,168,76,.04),rgba(13,15,18,.8));">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:0;">📁 Private Knowledge Base</div>
+      <span style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;background:rgba(201,168,76,.1);color:var(--gold);letter-spacing:.1em;">PERSONAL · PRIVATE</span>
+      <span id="kb-file-count" style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:auto;">0 files</span>
+    </div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Upload your fraternity documents — ritual books, history PDFs, chapter notes, membership manuals, study materials. The AI will extract knowledge and generate custom flashcards and daily lessons from <em>your</em> files.</div>
+
+    <!-- Drop Zone -->
+    <div id="kb-dropzone" style="border:2px dashed rgba(201,168,76,.3);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px;"
+      onclick="document.getElementById('kb-file-input').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='rgba(201,168,76,.06)'"
+      ondragleave="this.style.borderColor='rgba(201,168,76,.3)';this.style.background='transparent'"
+      ondrop="handleKBDrop(event)">
+      <div style="font-size:28px;margin-bottom:8px;">📄</div>
+      <div style="font-size:13px;color:var(--text-dim);">Drop files here or <span style="color:var(--gold);text-decoration:underline;">browse</span></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;">PDF · TXT · MD · DOCX · up to 4MB each</div>
+    </div>
+    <input type="file" id="kb-file-input" accept=".pdf,.txt,.md,.docx,.doc" multiple style="display:none;" onchange="handleKBFileSelect(event)"/>
+
+    <!-- Processing indicator -->
+    <div id="kb-processing" style="display:none;text-align:center;padding:14px;">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--gold);animation:gentlePulse 1.5s infinite;" id="kb-processing-msg">Processing file…</div>
+    </div>
+
+    <!-- File Library -->
+    <div id="kb-file-library" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+    <!-- Extracted cards from KB -->
+    <div id="kb-cards-section" style="display:none;margin-top:16px;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;">Generated Knowledge Cards</div>
+      <div id="kb-cards-list"></div>
+    </div>
+  </div>
+
+  <!-- Personal Notes -->
+  <div class="card mt16">
+    <div class="card-title">My Omega Notes</div>
+    <textarea class="inp" id="omega-notes" placeholder="Personal reflections, things to remember, things to ask your brothers…" style="min-height:100px;" oninput="saveOmegaNotes()"></textarea>
+  </div>
+
+</div>
+
+</main>
+
+<!-- MILESTONE MODAL -->
+<div class="modal-overlay" id="milestone-modal" style="display:none;" onclick="if(event.target===this)closeMilestoneModal()">
+  <div class="modal">
+    <h3 id="milestone-modal-title">Add Milestone</h3>
+    <div class="field"><label>Title</label><input class="inp" id="ml-title-inp" placeholder="e.g. First Acquisition Closed"/></div>
+    <div class="field"><label>Status</label>
+      <select class="inp" id="ml-status-inp">
+        <option value="future">Future</option>
+        <option value="active">In Progress</option>
+        <option value="done">Completed</option>
+      </select>
+    </div>
+    <div class="field"><label>Target Date / Timeframe</label><input class="inp" id="ml-date-inp" placeholder="e.g. Q4 2026, By July 2026, In View…"/></div>
+    <div class="field"><label>Notes</label><textarea class="inp" id="ml-notes-inp" placeholder="What this means, why it matters…" style="min-height:70px;"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeMilestoneModal()">Cancel</button>
+      <button class="btn btn-green" onclick="saveMilestone()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PROJECT MODAL -->
+<div class="modal-overlay" id="proj-modal" style="display:none;" onclick="if(event.target===this)closeProjModal()">
+  <div class="modal">
+    <h3>Add Project</h3>
+    <div class="field"><label>Project Name</label><input class="inp" id="proj-name-inp" placeholder="e.g. Hillsdale Flats"/></div>
+    <div class="field"><label>Client / Owner</label><input class="inp" id="proj-client-inp" placeholder="e.g. JV Partners"/></div>
+    <div class="field"><label>Location</label><input class="inp" id="proj-loc-inp" placeholder="e.g. Washington, DC"/></div>
+    <div class="field"><label>Status</label>
+      <select class="inp" id="proj-status-inp">
+        <option value="active">Active</option>
+        <option value="bidding">Bidding</option>
+        <option value="closeout">Closeout</option>
+        <option value="onhold">On Hold</option>
+      </select>
+    </div>
+    <div class="field"><label>Target Completion</label><input type="date" class="inp" id="proj-date-inp"/></div>
+    <div class="field"><label>Notes</label><textarea class="inp" id="proj-notes-inp" placeholder="Key details, scope, contacts…" style="min-height:60px;"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeProjModal()">Cancel</button>
+      <button class="btn" onclick="saveProject()">Add Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEAL MODAL -->
+<div class="modal-overlay" id="deal-modal" style="display:none;" onclick="if(event.target===this)closeDealModal()">
+  <div class="modal">
+    <h3>New Deal</h3>
+    <div class="field"><label>Deal / Company Name</label><input class="inp" id="deal-name-inp" placeholder="e.g. Sunrise Landscaping LLC"/></div>
+    <div class="field"><label>Type</label><input class="inp" id="deal-type-inp" placeholder="e.g. Business acquisition, Real estate…"/></div>
+    <div class="field"><label>Estimated Value</label><input class="inp" id="deal-value-inp" placeholder="e.g. $250k"/></div>
+    <div class="field"><label>Notes</label><textarea class="inp" id="deal-notes-inp" placeholder="Key details, contact info…" style="min-height:60px;"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeDealModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="saveDeal()">Add Deal</button>
+    </div>
+  </div>
+</div>
+
+<!-- EPISODE MODAL -->
+<div class="modal-overlay" id="ep-modal" style="display:none;" onclick="if(event.target===this)closeEpModal()">
+  <div class="modal">
+    <h3 id="ep-modal-title">New Episode</h3>
+    <div class="field"><label>Episode Title</label><input class="inp" id="ep-title-inp" placeholder="e.g. Building Without Permission"/></div>
+    <div class="field"><label>Guest</label><input class="inp" id="ep-guest-inp" placeholder="Guest name or Solo"/></div>
+    <div class="field"><label>Status</label>
+      <select class="inp" id="ep-status-inp">
+        <option value="idea">Idea</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="recorded">Recorded</option>
+        <option value="published">Published</option>
+      </select>
+    </div>
+    <div class="field"><label>Record / Air Date</label><input type="date" class="inp" id="ep-date-inp"/></div>
+    <div class="field"><label>Notes</label><textarea class="inp" id="ep-notes-inp" placeholder="Topic outline, questions, links…" style="min-height:60px;"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeEpModal()">Cancel</button>
+      <button class="btn" style="background:var(--purple);" onclick="saveEpisode()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'burhan-dashboard-v2';
+
+const FE_TOPICS = [
+  'Mathematics','Probability & Statistics','Ethics & Professional Practice',
+  'Engineering Economics','Statics','Dynamics','Mechanics of Materials',
+  'Materials Science','Fluid Mechanics','Thermodynamics','Heat Transfer',
+  'Electrical Circuits','Structural Analysis','Geotechnical Engineering',
+  'Transportation','Construction Management','Environmental Engineering','Surveying'
+];
+
+const CAT_COLORS = {
+  work:'var(--accent)',fe:'var(--gold)',business:'var(--purple)',personal:'var(--green)',podcast:'var(--pink)'
+};
+
+const PIPELINE_STAGES = ['Prospect','Due Diligence','Negotiation','Closed'];
+
+let state = {
+  tasks:[],
+  templates:[],
+  feTopics: FE_TOPICS.map(t=>({name:t,status:'todo'})),
+  feNotes:'',feTargetDate:'',
+  notes:{},kpis:{},
+  deals:[],
+  episodes:[],
+  pomoSessions:[],
+  projects:[],
+  milestones:[],
+};
+
+let editEpId = null;
+
+// ── PERSIST ──
+function load(){
+  const raw=localStorage.getItem(STORAGE_KEY);
+  if(!raw)return;
+  try{
+    const s=JSON.parse(raw);
+    Object.assign(state,s);
+    state.feTopics=FE_TOPICS.map(t=>{
+      const f=state.feTopics.find(x=>x.name===t);
+      return f||{name:t,status:'todo'};
+    });
+    state.deals=state.deals||[];
+    state.episodes=state.episodes||[];
+    state.templates=state.templates||[];
+    state.pomoSessions=state.pomoSessions||[];
+    state.kpis=state.kpis||{};
+    state.projects=state.projects||[];
+    state.milestones=state.milestones||[];
+  }catch(e){}
+}
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
+
+// ── TABS ──
+function switchTab(el,name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='overview')renderOverview();
+  if(name==='fe')renderFE();
+  if(name==='business')renderBusiness();
+  if(name==='podcast')renderPodcast();
+  if(name==='tasks')renderTasks();
+  if(name==='life'){renderMilestones();loadLifeNotes();}
+  if(name==='omega'){loadOmega();renderOmega();}
+}
+
+// ── DATE ──
+function updateDate(){
+  const now=new Date();
+  document.getElementById('live-date').textContent=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const b=document.getElementById('ov-date-badge');
+  if(b)b.textContent=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+
+// ── TEMPLATES ──
+function addTemplate(){
+  const n=document.getElementById('tmpl-name-inp').value.trim();
+  const cat=document.getElementById('tmpl-cat-inp').value;
+  const freq=document.getElementById('tmpl-freq-inp').value;
+  if(!n)return;
+  state.templates.push({id:Date.now(),name:n,cat,freq});
+  document.getElementById('tmpl-name-inp').value='';
+  save();renderTemplates();
+}
+function addTemplateAsTask(id){
+  const t=state.templates.find(x=>x.id===id);
+  if(!t)return;
+  state.tasks.push({id:Date.now(),text:t.name,cat:t.cat,done:false,date:todayStr()});
+  save();renderTasks();renderOverview();
+}
+function deleteTemplate(id){
+  state.templates=state.templates.filter(x=>x.id!==id);
+  save();renderTemplates();
+}
+function renderTemplates(){
+  const el=document.getElementById('tmpl-list');
+  if(!state.templates.length){
+    el.innerHTML='<div style="color:var(--text-dim);font-size:12px;padding:6px 0;">No templates yet — add recurring tasks below.</div>';return;
+  }
+  el.innerHTML=state.templates.map(t=>`
+    <div class="tmpl-item">
+      <div class="tmpl-dot" style="background:${CAT_COLORS[t.cat]||'var(--accent)'}"></div>
+      <span class="tmpl-name">${t.name}</span>
+      <span class="tmpl-freq">${t.freq}</span>
+      <button class="btn-ghost" style="padding:3px 10px;font-size:11px;" onclick="addTemplateAsTask(${t.id})">+ Today</button>
+      <button class="task-del" onclick="deleteTemplate(${t.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+// ── TASKS ──
+function addTask(){
+  const inp=document.getElementById('task-input');
+  const cat=document.getElementById('task-cat').value;
+  const text=inp.value.trim();
+  if(!text)return;
+  state.tasks.push({id:Date.now(),text,cat,done:false,date:todayStr()});
+  inp.value='';save();renderTasks();renderOverview();
+}
+function toggleTask(id){
+  const t=state.tasks.find(x=>x.id===id);
+  if(t){t.done=!t.done;save();renderTasks();renderOverview();}
+}
+function deleteTask(id){
+  state.tasks=state.tasks.filter(x=>x.id!==id);
+  save();renderTasks();renderOverview();
+}
+function renderTasks(){
+  renderTemplates();
+  const today=todayStr();
+  const todayT=state.tasks.filter(t=>t.date===today);
+  const older=state.tasks.filter(t=>t.date!==today);
+  const c=document.getElementById('task-sections');
+  c.innerHTML='';
+  const renderGroup=(title,tasks)=>{
+    if(!tasks.length)return;
+    const cats={};
+    tasks.forEach(t=>{if(!cats[t.cat])cats[t.cat]=[];cats[t.cat].push(t);});
+    const h=document.createElement('div');
+    h.style.cssText='font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;margin-top:18px;';
+    h.textContent=title;c.appendChild(h);
+    Object.entries(cats).forEach(([cat,items])=>{
+      const card=document.createElement('div');
+      card.className='card';card.style.marginBottom='10px';
+      card.innerHTML=`<div class="card-title" style="color:${CAT_COLORS[cat]||'var(--accent)'};">${cat.toUpperCase()}</div>`;
+      items.forEach(task=>{
+        const row=document.createElement('div');
+        row.className='task-item';
+        row.innerHTML=`<div class="task-check ${task.done?'done':''}" onclick="toggleTask(${task.id})"></div>
+          <span class="task-text ${task.done?'done':''}">${task.text}</span>
+          <button class="task-del" onclick="deleteTask(${task.id})">✕</button>`;
+        card.appendChild(row);
+      });
+      c.appendChild(card);
+    });
+  };
+  renderGroup("Today — "+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),todayT);
+  renderGroup("Earlier",older);
+  if(!state.tasks.length)c.innerHTML='<div style="color:var(--text-dim);font-size:13px;padding:14px 0;">No tasks yet. Add one above.</div>';
+}
+
+// ── FE ──
+function cycleStatus(idx){
+  const t=state.feTopics[idx];
+  const c={todo:'active',active:'done',done:'todo'};
+  t.status=c[t.status];
+  save();renderFE();renderOverview();
+}
+function renderFE(){
+  const done=state.feTopics.filter(t=>t.status==='done').length;
+  const active=state.feTopics.filter(t=>t.status==='active').length;
+  const todo=state.feTopics.filter(t=>t.status==='todo').length;
+  const total=state.feTopics.length;
+  const pct=Math.round((done/total)*100);
+  document.getElementById('fe-done-count').textContent=done;
+  document.getElementById('fe-active-count').textContent=active;
+  document.getElementById('fe-todo-count').textContent=todo;
+  document.getElementById('fe-overall-bar').style.width=pct+'%';
+  const dateEl=document.getElementById('fe-target-date');
+  if(state.feTargetDate)dateEl.value=state.feTargetDate;
+  let daysLeft='—';
+  if(state.feTargetDate){
+    const diff=Math.ceil((new Date(state.feTargetDate)-new Date())/86400000);
+    daysLeft=diff>0?diff:(diff===0?'Today!':'Passed');
+    const ml=document.getElementById('ml-fe-date');
+    if(ml)ml.textContent='Target: '+new Date(state.feTargetDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+  document.getElementById('fe-days-left').textContent=daysLeft;
+  const sColor={done:'var(--green)',active:'var(--accent)',todo:'var(--muted)'};
+  const sCls={done:'st-done',active:'st-active',todo:'st-todo'};
+  const sLbl={done:'Done',active:'Active',todo:'To Do'};
+  document.getElementById('fe-topic-list').innerHTML=state.feTopics.map((t,i)=>`
+    <div class="topic-row" onclick="cycleStatus(${i})">
+      <div class="topic-dot" style="background:${sColor[t.status]};"></div>
+      <span class="topic-name">${t.name}</span>
+      <span class="topic-status ${sCls[t.status]}">${sLbl[t.status]}</span>
+    </div>`).join('');
+  const n=document.getElementById('fe-notes');
+  if(n&&!n.dataset.init){n.value=state.feNotes||'';n.dataset.init='1';}
+}
+function saveFEDate(){state.feTargetDate=document.getElementById('fe-target-date').value;save();renderFE();}
+function saveFENotes(){state.feNotes=document.getElementById('fe-notes').value;save();}
+
+// ── POMODORO ──
+let pomoState={mode:'focus',totalSecs:25*60,remaining:25*60,running:false,interval:null};
+const CIRCUMFERENCE=427.26;
+
+function setPomoMode(mode,mins,btn){
+  if(pomoState.running)return;
+  document.querySelectorAll('.pomo-mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  pomoState.mode=mode;
+  pomoState.totalSecs=mins*60;
+  pomoState.remaining=mins*60;
+  const colors={focus:'var(--accent)',short:'var(--green)',long:'var(--gold)'};
+  document.getElementById('pomo-arc').style.stroke=colors[mode]||'var(--accent)';
+  const labels={focus:'FOCUS',short:'SHORT BREAK',long:'LONG BREAK'};
+  document.getElementById('pomo-mode-label').textContent=labels[mode];
+  updatePomoDisplay();
+}
+function togglePomo(){
+  if(pomoState.running){
+    clearInterval(pomoState.interval);
+    pomoState.running=false;
+    document.getElementById('pomo-start-btn').textContent='Resume';
+  } else {
+    if(pomoState.remaining<=0)resetPomo();
+    pomoState.running=true;
+    document.getElementById('pomo-start-btn').textContent='Pause';
+    pomoState.interval=setInterval(()=>{
+      pomoState.remaining--;
+      updatePomoDisplay();
+      if(pomoState.remaining<=0){
+        clearInterval(pomoState.interval);
+        pomoState.running=false;
+        document.getElementById('pomo-start-btn').textContent='Start';
+        logPomoSession();
+      }
+    },1000);
+  }
+}
+function resetPomo(){
+  clearInterval(pomoState.interval);
+  pomoState.running=false;
+  pomoState.remaining=pomoState.totalSecs;
+  document.getElementById('pomo-start-btn').textContent='Start';
+  updatePomoDisplay();
+}
+function updatePomoDisplay(){
+  const m=Math.floor(pomoState.remaining/60);
+  const s=pomoState.remaining%60;
+  document.getElementById('pomo-display').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  const progress=(pomoState.totalSecs-pomoState.remaining)/pomoState.totalSecs;
+  document.getElementById('pomo-arc').style.strokeDashoffset=CIRCUMFERENCE*(1-progress);
+}
+function logPomoSession(){
+  const label={focus:'Focus',short:'Short Break',long:'Long Break'};
+  const now=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  const mins=Math.round(pomoState.totalSecs/60);
+  state.pomoSessions.push({time:now,mode:pomoState.mode,mins,date:todayStr()});
+  save();renderPomoLog();
+}
+function renderPomoLog(){
+  const today=todayStr();
+  const logs=state.pomoSessions.filter(s=>s.date===today).slice(-8).reverse();
+  const el=document.getElementById('pomo-log');
+  if(!el)return;
+  if(!logs.length){el.innerHTML='<div class="pomo-log-item" style="color:var(--muted);">No sessions yet today.</div>';return;}
+  const colors={focus:'var(--accent)',short:'var(--green)',long:'var(--gold)'};
+  const labels={focus:'Focus',short:'Short Break',long:'Long Break'};
+  el.innerHTML=logs.map(s=>`<div class="pomo-log-item"><span style="color:${colors[s.mode]}">${labels[s.mode]} ${s.mins}m</span> — ${s.time}</div>`).join('');
+}
+
+// ── MILESTONES ──
+const DEFAULT_MILESTONES = [
+  {id:1,title:'Launch URD Solutions',status:'done',date:'Completed',notes:'Construction PM active — Hillsdale Flats & DC Bio-Retention running.'},
+  {id:2,title:'Pass FE Exam',status:'active',date:'Target: TBD',notes:'Engineering credential — unlocks PE path.'},
+  {id:3,title:'Move — New Chapter',status:'active',date:'By Late July 2026',notes:'Transition out of Letterman Greensboro. Fresh environment, sharper focus.'},
+  {id:4,title:'Marriage',status:'future',date:'In View',notes:'Foundation built on deen, alignment, and intention.'},
+  {id:5,title:'First Acquisition Closed',status:'future',date:'Future',notes:'Bridging URD into ownership and equity.'},
+  {id:6,title:'Locks & Loaded — 50 Episodes',status:'future',date:'Future',notes:'Consistent content, growing audience, brand established.'},
+];
+
+let editMilestoneId = null;
+
+function getMilestones(){
+  if(!state.milestones||!state.milestones.length) return DEFAULT_MILESTONES;
+  return state.milestones;
+}
+
+function openMilestoneModal(id){
+  editMilestoneId = id||null;
+  const titleEl = document.getElementById('milestone-modal-title');
+  if(id){
+    const m = getMilestones().find(x=>x.id===id);
+    if(m){
+      document.getElementById('ml-title-inp').value = m.title;
+      document.getElementById('ml-status-inp').value = m.status;
+      document.getElementById('ml-date-inp').value = m.date||'';
+      document.getElementById('ml-notes-inp').value = m.notes||'';
+    }
+    if(titleEl) titleEl.textContent = 'Edit Milestone';
+  } else {
+    ['ml-title-inp','ml-date-inp','ml-notes-inp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('ml-status-inp').value='future';
+    if(titleEl) titleEl.textContent = 'Add Milestone';
+  }
+  document.getElementById('milestone-modal').style.display='flex';
+}
+function closeMilestoneModal(){document.getElementById('milestone-modal').style.display='none';editMilestoneId=null;}
+function saveMilestone(){
+  const title = document.getElementById('ml-title-inp').value.trim();
+  if(!title)return;
+  // if still using defaults, copy them to state first
+  if(!state.milestones||!state.milestones.length) state.milestones=[...DEFAULT_MILESTONES.map(m=>({...m}))];
+  const data = {
+    title,
+    status: document.getElementById('ml-status-inp').value,
+    date: document.getElementById('ml-date-inp').value.trim(),
+    notes: document.getElementById('ml-notes-inp').value.trim(),
+  };
+  if(editMilestoneId){
+    const m = state.milestones.find(x=>x.id===editMilestoneId);
+    if(m) Object.assign(m,data);
+  } else {
+    state.milestones.push({id:Date.now(),...data});
+  }
+  save();closeMilestoneModal();renderMilestones();
+}
+function deleteMilestone(id){
+  if(!confirm('Remove this milestone?'))return;
+  if(!state.milestones||!state.milestones.length) state.milestones=[...DEFAULT_MILESTONES.map(m=>({...m}))];
+  state.milestones = state.milestones.filter(m=>m.id!==id);
+  save();renderMilestones();
+}
+function cycleMilestoneStatus(id){
+  if(!state.milestones||!state.milestones.length) state.milestones=[...DEFAULT_MILESTONES.map(m=>({...m}))];
+  const m = state.milestones.find(x=>x.id===id);
+  if(!m)return;
+  const cycle={future:'active',active:'done',done:'future'};
+  m.status=cycle[m.status]||'future';
+  save();renderMilestones();
+}
+function moveMilestone(id,dir){
+  if(!state.milestones||!state.milestones.length) state.milestones=[...DEFAULT_MILESTONES.map(m=>({...m}))];
+  const idx = state.milestones.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  const newIdx = idx+dir;
+  if(newIdx<0||newIdx>=state.milestones.length)return;
+  const tmp = state.milestones[idx];
+  state.milestones[idx] = state.milestones[newIdx];
+  state.milestones[newIdx] = tmp;
+  save();renderMilestones();
+}
+function renderMilestones(){
+  const list = document.getElementById('milestone-list');
+  const empty = document.getElementById('milestone-empty');
+  if(!list)return;
+  const milestones = getMilestones();
+  if(!milestones.length){list.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  const dotClass={done:'done',active:'active',future:'future'};
+  const statusLabel={done:'✓ Done',active:'In Progress',future:'Future'};
+  const statusColor={done:'var(--green)',active:'var(--accent)',future:'var(--muted)'};
+  list.innerHTML = milestones.map((m,i)=>`
+    <div class="milestone" style="position:relative;">
+      <div class="ml-dot-col">
+        <div class="ml-dot ${dotClass[m.status]||'future'}" onclick="cycleMilestoneStatus(${m.id})" title="Click to change status" style="cursor:pointer;"></div>
+        ${i<milestones.length-1?'<div class="ml-line"></div>':''}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div style="flex:1;">
+            <div class="ml-title">${m.title}</div>
+            ${m.date?`<div class="ml-date">${m.date}</div>`:''}
+            ${m.notes?`<div class="ml-note">${m.notes}</div>`:''}
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;margin-top:2px;">
+            <button onclick="cycleMilestoneStatus(${m.id})" title="Cycle status" style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid ${statusColor[m.status]};background:transparent;color:${statusColor[m.status]};cursor:pointer;white-space:nowrap;">${statusLabel[m.status]||m.status}</button>
+            <button class="btn-ghost" onclick="openMilestoneModal(${m.id})" style="padding:2px 8px;font-size:11px;">✎</button>
+            ${i>0?`<button class="btn-ghost" onclick="moveMilestone(${m.id},-1)" style="padding:2px 8px;font-size:11px;" title="Move up">↑</button>`:''}
+            ${i<milestones.length-1?`<button class="btn-ghost" onclick="moveMilestone(${m.id},1)" style="padding:2px 8px;font-size:11px;" title="Move down">↓</button>`:''}
+            <button class="task-del" onclick="deleteMilestone(${m.id})" title="Remove">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  // sync FE date if present
+  const feDate = document.getElementById('ml-fe-date');
+  if(feDate&&state.feTargetDate){
+    feDate.textContent='Target: '+new Date(state.feTargetDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+}
+
+// ── PROJECTS ──
+function openAddProjectModal(){
+  ['proj-name-inp','proj-client-inp','proj-loc-inp','proj-notes-inp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('proj-status-inp').value='active';
+  document.getElementById('proj-date-inp').value='';
+  document.getElementById('proj-modal').style.display='flex';
+}
+function closeProjModal(){document.getElementById('proj-modal').style.display='none';}
+function saveProject(){
+  const name=document.getElementById('proj-name-inp').value.trim();
+  if(!name)return;
+  state.projects=state.projects||[];
+  state.projects.push({
+    id:Date.now(),
+    name,
+    client:document.getElementById('proj-client-inp').value.trim(),
+    location:document.getElementById('proj-loc-inp').value.trim(),
+    status:document.getElementById('proj-status-inp').value,
+    date:document.getElementById('proj-date-inp').value,
+    notes:document.getElementById('proj-notes-inp').value.trim(),
+  });
+  save();closeProjModal();renderBusiness();
+}
+function removeProject(id){
+  if(!confirm('Remove this project?'))return;
+  state.projects=state.projects.filter(p=>p.id!==id);
+  save();renderBusiness();
+}
+function cycleProjectStatus(id){
+  const p=(state.projects||[]).find(x=>x.id===id);
+  if(!p)return;
+  const cycle={active:'bidding',bidding:'closeout',closeout:'onhold',onhold:'active'};
+  p.status=cycle[p.status]||'active';
+  save();renderBusiness();
+}
+function renderProjectList(){
+  const projects=state.projects||[];
+  const countEl=document.getElementById('urd-proj-count');
+  const listEl=document.getElementById('urd-project-list');
+  if(countEl)countEl.textContent=projects.filter(p=>p.status==='active').length+'/'+projects.length;
+  if(!listEl)return;
+  const statusColors={active:'var(--green)',bidding:'var(--gold)',closeout:'var(--accent)',onhold:'var(--muted)'};
+  const statusLabels={active:'Active',bidding:'Bidding',closeout:'Closeout',onhold:'On Hold'};
+  listEl.innerHTML=projects.length?projects.map(p=>`
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-left:3px solid ${statusColors[p.status]||'var(--accent)'};border-radius:6px;padding:10px 12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">${p.name}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">
+          ${p.client?`<span>${p.client}</span>`:''}
+          ${p.location?`<span style="margin-left:6px;">· ${p.location}</span>`:''}
+          ${p.date?`<span style="margin-left:6px;">· Due ${new Date(p.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>`:''}
+        </div>
+        ${p.notes?`<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">${p.notes}</div>`:''}
+      </div>
+      <button onclick="cycleProjectStatus(${p.id})" style="font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:4px;border:1px solid ${statusColors[p.status]||'var(--border)'};background:transparent;color:${statusColors[p.status]||'var(--muted)'};cursor:pointer;white-space:nowrap;">${statusLabels[p.status]||p.status}</button>
+      <button class="task-del" onclick="removeProject(${p.id})" title="Remove project">✕</button>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:12px;padding:6px 0;">No projects yet — add one above.</div>';
+}
+
+// ── BUSINESS ──
+function saveNote(key){const el=document.getElementById(key);if(el){state.notes[key]=el.value;save();}}
+function saveKPI(key){const el=document.getElementById(key);if(el){state.kpis[key]=el.value;save();}}
+function loadNotes(){
+  ['urd-notes','vision-notes','reflection-notes','life-notes'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(el&&state.notes[k]!==undefined)el.value=state.notes[k];
+  });
+  ['urd-rfis','urd-subs'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(el&&state.kpis[k]!==undefined)el.value=state.kpis[k];
+  });
+}
+function loadLifeNotes(){
+  ['vision-notes','reflection-notes','life-notes'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(el&&state.notes[k]!==undefined)el.value=state.notes[k];
+  });
+}
+
+// DEALS
+function openDealModal(){
+  ['deal-name-inp','deal-type-inp','deal-value-inp','deal-notes-inp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('deal-modal').style.display='flex';
+}
+function closeDealModal(){document.getElementById('deal-modal').style.display='none';}
+function saveDeal(){
+  const name=document.getElementById('deal-name-inp').value.trim();
+  if(!name)return;
+  state.deals.push({
+    id:Date.now(),
+    name,
+    type:document.getElementById('deal-type-inp').value.trim(),
+    value:document.getElementById('deal-value-inp').value.trim(),
+    notes:document.getElementById('deal-notes-inp').value.trim(),
+    stage:'Prospect'
+  });
+  save();closeDealModal();renderBusiness();renderOverview();
+}
+function moveDeal(id,dir){
+  const d=state.deals.find(x=>x.id===id);
+  if(!d)return;
+  const idx=PIPELINE_STAGES.indexOf(d.stage);
+  const next=idx+dir;
+  if(next<0||next>=PIPELINE_STAGES.length)return;
+  d.stage=PIPELINE_STAGES[next];
+  save();renderBusiness();renderOverview();
+}
+function deleteDeal(id){
+  if(!confirm('Remove this deal?'))return;
+  state.deals=state.deals.filter(x=>x.id!==id);
+  save();renderBusiness();renderOverview();
+}
+function renderBusiness(){
+  renderProjectList();
+  const stageColors={Prospect:'var(--muted)','Due Diligence':'var(--gold)',Negotiation:'var(--accent)',Closed:'var(--green)'};
+  const board=document.getElementById('kanban-board');
+  if(!board)return;
+  board.innerHTML=PIPELINE_STAGES.map(stage=>{
+    const deals=state.deals.filter(d=>d.stage===stage);
+    return `<div class="kanban-col">
+      <div class="kanban-col-title" style="color:${stageColors[stage]};">
+        ${stage}<span class="kanban-count">${deals.length}</span>
+      </div>
+      ${deals.map(d=>`
+        <div class="deal-card">
+          <div class="deal-name">${d.name}</div>
+          <div class="deal-meta">${d.type||'—'} ${d.value?'· '+d.value:''}</div>
+          ${d.notes?`<div class="deal-meta mt8" style="color:var(--text-dim);font-size:11px;line-height:1.4;">${d.notes}</div>`:''}
+          <div class="deal-actions">
+            ${PIPELINE_STAGES.indexOf(d.stage)>0?`<button class="deal-btn" onclick="moveDeal(${d.id},-1)">← Back</button>`:''}
+            ${PIPELINE_STAGES.indexOf(d.stage)<PIPELINE_STAGES.length-1?`<button class="deal-btn" onclick="moveDeal(${d.id},1)">Forward →</button>`:''}
+            <button class="deal-btn del" onclick="deleteDeal(${d.id})">Remove</button>
+          </div>
+        </div>`).join('')}
+      ${!deals.length?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px 0;">Empty</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Restore persisted values for editable fields
+  ['urd-notes','vision-notes','reflection-notes','life-notes'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(el&&state.notes[k]!==undefined)el.value=state.notes[k];
+  });
+  ['urd-rfis','urd-subs'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(el&&state.kpis[k]!==undefined)el.value=state.kpis[k];
+  });
+}
+
+// ── PODCAST ──
+function openEpModal(id){
+  editEpId=id||null;
+  document.getElementById('ep-modal-title').textContent=id?'Edit Episode':'New Episode';
+  if(id){
+    const ep=state.episodes.find(x=>x.id===id);
+    if(ep){
+      document.getElementById('ep-title-inp').value=ep.title;
+      document.getElementById('ep-guest-inp').value=ep.guest||'';
+      document.getElementById('ep-status-inp').value=ep.status;
+      document.getElementById('ep-date-inp').value=ep.date||'';
+      document.getElementById('ep-notes-inp').value=ep.notes||'';
+    }
+  } else {
+    ['ep-title-inp','ep-guest-inp','ep-notes-inp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('ep-status-inp').value='idea';
+    document.getElementById('ep-date-inp').value='';
+  }
+  document.getElementById('ep-modal').style.display='flex';
+}
+function closeEpModal(){document.getElementById('ep-modal').style.display='none';editEpId=null;}
+function saveEpisode(){
+  const title=document.getElementById('ep-title-inp').value.trim();
+  if(!title)return;
+  const data={title,guest:document.getElementById('ep-guest-inp').value.trim(),
+    status:document.getElementById('ep-status-inp').value,
+    date:document.getElementById('ep-date-inp').value,
+    notes:document.getElementById('ep-notes-inp').value.trim()};
+  if(editEpId){
+    const ep=state.episodes.find(x=>x.id===editEpId);
+    if(ep)Object.assign(ep,data);
+  } else {
+    state.episodes.push({id:Date.now(),...data});
+  }
+  save();closeEpModal();renderPodcast();renderOverview();
+}
+function deleteEpisode(id){
+  if(!confirm('Remove episode?'))return;
+  state.episodes=state.episodes.filter(x=>x.id!==id);
+  save();renderPodcast();renderOverview();
+}
+function renderPodcast(){
+  const filter=document.getElementById('pod-filter')?.value||'all';
+  const total=state.episodes.length;
+  const scheduled=state.episodes.filter(e=>e.status==='scheduled').length;
+  const published=state.episodes.filter(e=>e.status==='published').length;
+  const ideas=state.episodes.filter(e=>e.status==='idea').length;
+  document.getElementById('pod-total').textContent=total;
+  document.getElementById('pod-scheduled').textContent=scheduled;
+  document.getElementById('pod-published').textContent=published;
+  document.getElementById('pod-ideas').textContent=ideas;
+
+  const statusCls={idea:'ep-idea',scheduled:'ep-scheduled',recorded:'ep-recorded',published:'ep-published'};
+  const statusLbl={idea:'Idea',scheduled:'Scheduled',recorded:'Recorded',published:'Published'};
+  const filtered=filter==='all'?state.episodes:state.episodes.filter(e=>e.status===filter);
+  const sorted=[...filtered].sort((a,b)=>{
+    const order={published:0,recorded:1,scheduled:2,idea:3};
+    return order[a.status]-order[b.status]||b.id-a.id;
+  });
+  const epList=document.getElementById('ep-list');
+  if(!epList)return;
+  if(!sorted.length){epList.innerHTML='<div style="color:var(--text-dim);font-size:13px;padding:16px 0;">No episodes yet. Add your first one!</div>';return;}
+  const publishedEps=state.episodes.filter(e=>e.status==='published');
+  epList.innerHTML=sorted.map(ep=>{
+    const epNum=ep.status==='published'?publishedEps.findIndex(x=>x.id===ep.id)+1:'—';
+    return `<div class="ep-card">
+      <div class="ep-header">
+        <div class="ep-num">${typeof epNum==='number'&&epNum>0?String(epNum).padStart(2,'0'):'·'}</div>
+        <div class="ep-info">
+          <div class="ep-title">${ep.title}</div>
+          <div class="ep-guest">${ep.guest||'Solo'}</div>
+        </div>
+        <span class="ep-status-badge ${statusCls[ep.status]}">${statusLbl[ep.status]}</span>
+      </div>
+      ${ep.notes?`<div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.5;">${ep.notes}</div>`:''}
+      <div class="ep-footer">
+        <span class="ep-date">${ep.date?new Date(ep.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''}</span>
+        <button class="deal-btn" onclick="openEpModal(${ep.id})">Edit</button>
+        <button class="deal-btn del" onclick="deleteEpisode(${ep.id})">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── OVERVIEW ──
+function renderOverview(){
+  const today=todayStr();
+  const todayT=state.tasks.filter(t=>t.date===today);
+  const doneT=todayT.filter(t=>t.done).length;
+  document.getElementById('ov-tasks-done').textContent=`${doneT}/${todayT.length}`;
+  const done=state.feTopics.filter(t=>t.status==='done').length;
+  document.getElementById('ov-fe-pct').textContent=Math.round((done/state.feTopics.length)*100)+'%';
+  document.getElementById('ov-ep-count').textContent=state.episodes.filter(e=>e.status==='published').length;
+  document.getElementById('ov-deal-count').textContent=state.deals.length;
+  const ovTasks=document.getElementById('ov-task-list');
+  const pending=todayT.filter(t=>!t.done).slice(0,5);
+  ovTasks.innerHTML=pending.length?pending.map(t=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:${CAT_COLORS[t.cat]||'var(--accent)'};flex-shrink:0;"></div>${t.text}
+    </div>`).join(''):'<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">No pending tasks today.</div>';
+  const nextTopics=state.feTopics.filter(t=>t.status!=='done').slice(0,5);
+  document.getElementById('ov-fe-next').innerHTML=nextTopics.map(t=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:${t.status==='active'?'var(--accent)':'var(--muted)'};flex-shrink:0;"></div>
+      ${t.name}
+      <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:${t.status==='active'?'var(--accent)':'var(--muted)'};">${t.status==='active'?'Active':'To Do'}</span>
+    </div>`).join('')||'<div style="color:var(--green);font-size:13px;">All topics complete! 🎉</div>';
+}
+
+// ── INIT ──
+load();
+updateDate();setInterval(updateDate,60000);
+renderTasks();renderFE();renderBusiness();renderPodcast();renderOverview();renderPomoLog();
+loadNotes();renderMilestones();
+updatePomoDisplay();
+loadOmega();
+loadKB();
+
+// ══════════════════════════════════════
+// OMEGA PSI PHI KNOWLEDGE SYSTEM
+// ══════════════════════════════════════
+
+const OMEGA_DATA = {
+  founders: [
+    {q:"Who are the four founders of Omega Psi Phi?", a:"Edgar Amos Love, Oscar James Cooper, Frank Coleman, and Professor Ernest Everett Just.", cat:"founders"},
+    {q:"On what date was Omega Psi Phi Fraternity founded?", a:"November 17, 1911.", cat:"founders"},
+    {q:"Where was Omega Psi Phi founded?", a:"At Howard University in Washington, D.C., in the office of Professor Ernest Everett Just.", cat:"founders"},
+    {q:"Who was the faculty adviser and first honorary member of Omega Psi Phi?", a:"Professor Ernest Everett Just, a distinguished marine biologist.", cat:"founders"},
+    {q:"What was Edgar Amos Love known for?", a:"He was a minister and educator, one of the three student founders. He later became a bishop in the Methodist Church.", cat:"founders"},
+    {q:"What was Oscar James Cooper's significance?", a:"He was one of the three student founders and later became a physician serving the Baltimore community for decades.", cat:"founders"},
+    {q:"What was Frank Coleman's role after founding?", a:"Frank Coleman became a physics professor at Howard University, remaining closely connected to the fraternity's roots.", cat:"founders"},
+    {q:"Why is November 17 significant in Omega history?", a:"It is Founders' Day — the anniversary of the founding of Omega Psi Phi in 1911. It is celebrated across all chapters.", cat:"founders"},
+  ],
+  principles: [
+    {q:"What are the Four Cardinal Principles of Omega Psi Phi?", a:"Manhood, Scholarship, Perseverance, and Uplift.", cat:"principles"},
+    {q:"What does the principle of 'Manhood' mean in Omega Psi Phi?", a:"It refers to upholding dignity, integrity, and the highest standards of character in all aspects of life.", cat:"principles"},
+    {q:"What does 'Scholarship' represent as an Omega principle?", a:"A commitment to academic excellence, lifelong learning, and intellectual development.", cat:"principles"},
+    {q:"What does 'Perseverance' mean in the context of Omega Psi Phi?", a:"The determination to overcome obstacles and persist through hardship in pursuit of goals and service.", cat:"principles"},
+    {q:"What does 'Uplift' mean as an Omega Cardinal Principle?", a:"The dedication to elevating the condition of the Black community and all people through service and leadership.", cat:"principles"},
+    {q:"What is the motto of Omega Psi Phi?", a:"'Friendship is Essential to the Soul.'", cat:"principles"},
+    {q:"What is the official symbol of Omega Psi Phi?", a:"The Omega symbol (Ω), representing the last letter of the Greek alphabet — a symbol of completion and excellence.", cat:"principles"},
+    {q:"What are the official colors of Omega Psi Phi?", a:"Royal Purple and Old Gold.", cat:"principles"},
+    {q:"What does the Purple represent in Omega Psi Phi?", a:"Royalty, dignity, and the nobility of purpose.", cat:"principles"},
+    {q:"What does Old Gold represent in Omega Psi Phi?", a:"Achievement, excellence, and the brightness of intellectual accomplishment.", cat:"principles"},
+  ],
+  history: [
+    {q:"Omega Psi Phi was the first Greek-letter fraternity founded at what type of institution?", a:"The first Greek-letter fraternity founded at a historically Black college or university (HBCU) — Howard University.", cat:"history"},
+    {q:"What does 'Omega Psi Phi' mean?", a:"It is derived from the Greek phrase meaning 'friendship is essential to the soul' — the three words corresponding to the three Greek letters.", cat:"history"},
+    {q:"When was Omega Psi Phi incorporated?", a:"Omega Psi Phi was incorporated on October 28, 1914, in Washington, D.C.", cat:"history"},
+    {q:"What is the significance of the 'Que' nickname?", a:"'Que' (or 'Que Psi Phi') is a common informal name used to refer to Omega Psi Phi members, derived from the pronunciation of the Omega symbol.", cat:"history"},
+    {q:"What major civil rights leader was a member of Omega Psi Phi?", a:"Langston Hughes, Carter G. Woodson, Jesse Jackson, and many others. The fraternity has a deep legacy of civil rights engagement.", cat:"history"},
+    {q:"Who is Carter G. Woodson and what is his connection to Omega Psi Phi?", a:"Carter G. Woodson was the 'Father of Black History,' founder of Black History Month, and a proud member of Omega Psi Phi Fraternity.", cat:"history"},
+    {q:"What is the Omega Psi Phi 'Lampados Club'?", a:"It refers to the interest organization or pre-initiation process in some chapters — from 'Lampados,' meaning torch, symbolizing the passing of knowledge.", cat:"history"},
+    {q:"What is the Omega Psi Phi Achievement Week?", a:"An annual observance held in November celebrating the fraternity's founding and its members' contributions to their communities.", cat:"history"},
+    {q:"What district includes Washington, D.C. chapters of Omega Psi Phi?", a:"The First District, which covers the Mid-Atlantic region including Maryland, Virginia, and D.C.", cat:"history"},
+    {q:"What is the Omega Psi Phi 'Sigma' chapter?", a:"Sigma is one of the earliest and most prestigious chapters, located at Howard University — the founding institution.", cat:"history"},
+  ],
+  traditions: [
+    {q:"What is 'Omega Night' in the context of Omega Psi Phi?", a:"A chapter gathering or step show event where Omega men celebrate brotherhood, step, and reinforce fraternal bonds.", cat:"traditions"},
+    {q:"What is the famous Omega step style called?", a:"Omega men are known for a distinctive, powerful stomp-based step style often incorporating calls, chants, and synchronized movement.", cat:"traditions"},
+    {q:"What is the Omega 'Que Dawg' call?", a:"A deep, resonant howl ('Arf Arf Arf' or 'Woof') used as a recognition call among Omega brothers — a tradition tied to the fraternity's bulldog imagery.", cat:"traditions"},
+    {q:"What animal is associated with Omega Psi Phi?", a:"The bulldog — representing loyalty, tenacity, and strength.", cat:"traditions"},
+    {q:"What is 'Omega Week'?", a:"A week-long celebration on college campuses where Ques host events, step shows, community service activities, and social gatherings to promote the fraternity.", cat:"traditions"},
+    {q:"What do Omega men mean when they say 'Que Psi Phi'?", a:"It is a greeting and declaration of Omega identity — an expression of pride in the fraternity.", cat:"traditions"},
+    {q:"What is the significance of the torch in Omega Psi Phi symbolism?", a:"The torch represents the light of knowledge, truth, and enlightenment — Omegas are charged to carry and pass this light.", cat:"traditions"},
+    {q:"What is the Omega 'Big Brother' tradition?", a:"Each new initiate is typically assigned or bonds with a Big Brother — an experienced member who mentors them through fraternal life.", cat:"traditions"},
+  ],
+  notables: [
+    {q:"Name three famous musicians who are Omega Psi Phi members.", a:"Rickey Minor (musical director), Tom Joyner (radio host and philanthropist), and Michael Jordan's close associates — many entertainers are Ques.", cat:"notables"},
+    {q:"Which NBA legend is a member of Omega Psi Phi?", a:"Shaquille O'Neal is an Omega Psi Phi initiate.", cat:"notables"},
+    {q:"Which civil rights leader and Congressman was a member of Omega Psi Phi?", a:"Jesse Jackson Sr. is a member of Omega Psi Phi Fraternity, Inc.", cat:"notables"},
+    {q:"Who was the first Omega member to serve as a U.S. Secretary?", a:"Vernon Jordan, advisor to President Clinton, and other notable Omega men have served in high government positions across U.S. history.", cat:"notables"},
+    {q:"What Omega member is known as the 'Father of Black History'?", a:"Dr. Carter G. Woodson — he founded the Association for the Study of Negro Life and History and established Black History Month.", cat:"notables"},
+    {q:"What famous Harlem Renaissance poet was a member of Omega Psi Phi?", a:"Langston Hughes, one of America's most celebrated poets, was an Omega Psi Phi member.", cat:"notables"},
+    {q:"Which entertainer and host known for his philanthropy is an Omega?", a:"Tom Joyner, radio host and founder of the Tom Joyner Foundation supporting HBCU students, is a proud Que.", cat:"notables"},
+    {q:"What famous football coach and NFL figure is an Omega?", a:"Several NFL coaches and executives are Omega Psi Phi members, reflecting the fraternity's wide reach into professional sports.", cat:"notables"},
+  ],
+  service: [
+    {q:"What is Omega Psi Phi's primary national service initiative?", a:"The 'Mentoring Initiative' — a national program focused on providing mentorship to young Black men across America.", cat:"service"},
+    {q:"What health initiative does Omega Psi Phi champion nationally?", a:"Prostate Cancer Awareness — Omega Psi Phi is one of the most active Greek organizations in fighting prostate cancer and promoting men's health.", cat:"service"},
+    {q:"What is Omega Psi Phi's scholarship program?", a:"The fraternity awards the 'Omega Psi Phi Scholarship' annually to outstanding students committed to academic excellence and community service.", cat:"service"},
+    {q:"What is the significance of 'Uplift' in Omega's community work?", a:"Uplift drives Omega's service mission — chapters are expected to actively improve their communities through programming, mentorship, and civic engagement.", cat:"service"},
+    {q:"What annual event do Omega chapters host to raise awareness for Black men's health?", a:"Chapters participate in and organize prostate cancer screenings, health fairs, and awareness walks as part of the fraternity's national health platform.", cat:"service"},
+    {q:"What is the Omega Psi Phi 'Social Action' program?", a:"A national program directing chapters to engage in voter registration, advocacy, and civic action to empower their communities politically.", cat:"service"},
+  ],
+};
+
+const DAILY_LESSONS = [
+  {cat:"Founding",title:"The Night That Changed History",body:`On <strong>November 17, 1911</strong>, three Howard University students — <strong>Edgar Amos Love, Oscar James Cooper, and Frank Coleman</strong> — met with their faculty adviser, <strong>Professor Ernest Everett Just</strong>, and founded what would become the most dynamic fraternity in the world.\n\nThey chose four principles to guide every member who would follow: <strong>Manhood, Scholarship, Perseverance, and Uplift</strong>. Not four random words — a complete philosophy of Black excellence.\n\nThey were founding something at a time when Black men were told they couldn't. Remember that every time you wear the Omega colors.`},
+  {cat:"Cardinal Principles",title:"Why Manhood Comes First",body:`The principle of <strong>Manhood</strong> is listed first among the Cardinal Principles for a reason. Omega Psi Phi believes that before you can serve your community, before you can uplift others, before you can persevere — you must first be a man of character.\n\nManhood in the Omega tradition means <strong>integrity without an audience</strong>. It means doing right when no one is watching. It means being accountable to your brothers, your family, your word.\n\nAsk yourself daily: <em>Am I living up to the Manhood standard?</em>`},
+  {cat:"Scholarship",title:"The Scholar Tradition",body:`<strong>Scholarship</strong> is not just about grades — it is about a lifelong commitment to knowing. Omega Psi Phi was founded at a university, and that DNA runs through every chapter.\n\n<strong>Carter G. Woodson</strong>, a proud Omega, created Black History Month because he understood that knowledge of self is the foundation of all liberation. His motto: <em>"If you can control a man's thinking, you do not have to worry about his actions."</em>\n\nAs a Que, you carry the obligation to keep learning. The FE exam, Procore mastery, construction law, business acquisition — all of it is Scholarship in action.`},
+  {cat:"History",title:"First at an HBCU",body:`When Omega Psi Phi was founded in 1911, it was <strong>the first Greek-letter fraternity founded at a Historically Black College or University</strong>. The founders didn't wait for an invitation into existing white fraternities — they built their own.\n\nThis is the essence of the Omega spirit: when the door doesn't exist, build it. When the table doesn't have your seat, bring your own chair — then expand the table.\n\nEvery Omega who came after 1911 inherited that boldness. <strong>You inherited it too.</strong>`},
+  {cat:"Notable Ques",title:"Carter G. Woodson — The Father of Black History",body:`<strong>Carter G. Woodson (1875–1950)</strong> is one of the most important intellectuals in American history — and a proud Omega Psi Phi man.\n\nHe founded the <strong>Association for the Study of Negro Life and History</strong> in 1915 and established <strong>Negro History Week</strong> in 1926, which eventually became Black History Month. His landmark book <em>The Mis-Education of the Negro</em> remains essential reading.\n\nWoodson taught that self-knowledge is survival. As an Omega, you carry that tradition. Study your history — fraternal and cultural — and pass it on.`},
+  {cat:"Traditions",title:"The Meaning of the Que Dawg",body:`The <strong>bulldog</strong> became associated with Omega Psi Phi through the fraternity's culture of loyalty, toughness, and fearlessness. Bulldogs don't back down, don't forget their pack, and are known for their relentless determination.\n\nThe famous <strong>Que Dawg call</strong> — a deep bark or howl — is a recognition call used by Ques across the country. When you hear it, you respond. It is a bond that crosses chapter lines, city lines, generational lines.\n\nWear it with pride. The call means: <em>I see you, brother. We are the same.</em>`},
+  {cat:"Service",title:"Prostate Cancer Awareness — Omega's Health Mission",body:`Omega Psi Phi Fraternity leads one of the most important health campaigns in the Black community: <strong>prostate cancer awareness</strong>.\n\nBlack men are <strong>twice as likely</strong> as white men to develop prostate cancer and more likely to die from it. Omega chapters host screenings, health fairs, and awareness campaigns to change those numbers.\n\nThis is Uplift in its most literal form: saving the lives of Black men. Every chapter is expected to engage in this work. As a Que, you are part of this mission whether you organize an event or simply encourage a brother to get screened.`},
+  {cat:"Principles",title:"Perseverance — What Sets Omegas Apart",body:`Of all the Cardinal Principles, <strong>Perseverance</strong> may be the one that distinguishes those who make it from those who don't.\n\nOmega Psi Phi expects its members to push through — through setbacks, through doubt, through seasons where nothing is working. The fraternity was founded during a period of intense racial oppression, and its founders built something lasting anyway.\n\nYour FE exam grind, your construction hustle with URD, your move, your business acquisitions — all of it is Perseverance in practice. The Omega in you already knows how to hold the line. Trust it.`},
+  {cat:"Founders",title:"Ernest Everett Just — The Scientist Founder",body:`<strong>Professor Ernest Everett Just (1883–1941)</strong> was one of the most accomplished scientists of his generation — a marine biologist whose research on cell fertilization was decades ahead of its time.\n\nHe was the <strong>faculty adviser and first honorary member</strong> of Omega Psi Phi, and his presence gave the fraternity its commitment to scholarship from day one.\n\nJust faced intense racism in American academia and eventually moved to Europe to pursue his research freely. Despite the obstacles, he never stopped. That spirit — brilliance in the face of barriers — is the Omega inheritance.`},
+  {cat:"Structure",title:"Understanding Omega's Chapter Structure",body:`Omega Psi Phi is organized into <strong>Districts</strong>, each overseeing local chapters across a geographic region. There are currently <strong>12 Districts</strong> spanning the United States and international chapters.\n\nChapters are designated with Greek letters (e.g., <strong>Sigma Chapter at Howard University</strong> — the founding chapter). Undergraduate chapters are on college campuses; graduate chapters serve communities after graduation.\n\nGraduate chapters are where much of the fraternity's community service work lives. As you grow in your career and life, your graduate chapter becomes your home base for Omega work.`},
+];
+
+// ── KNOWLEDGE BASE ──
+
+const KB_STORAGE_KEY = 'burhan-omega-kb-v1';
+let kbState = { files: [], cards: [] }; // files: [{id,name,size,type,status,text,cardCount}], cards: [{q,a,src,fileId}]
+
+function loadKB(){
+  try{
+    const r = localStorage.getItem(KB_STORAGE_KEY);
+    if(r) kbState = JSON.parse(r);
+  } catch(e){}
+}
+function saveKB(){ try{localStorage.setItem(KB_STORAGE_KEY, JSON.stringify(kbState));}catch(e){console.warn('KB save failed',e);} }
+
+function handleKBDrop(e){
+  e.preventDefault();
+  document.getElementById('kb-dropzone').style.borderColor='rgba(201,168,76,.3)';
+  document.getElementById('kb-dropzone').style.background='transparent';
+  const files = Array.from(e.dataTransfer.files);
+  processKBFiles(files);
+}
+
+function handleKBFileSelect(e){
+  const files = Array.from(e.target.files);
+  processKBFiles(files);
+  e.target.value=''; // reset so same file can be re-uploaded
+}
+
+async function processKBFiles(files){
+  for(const file of files){
+    if(file.size > 4*1024*1024){ alert(`"${file.name}" is over 4MB. Please use a smaller file.`); continue; }
+    const allowed = ['text/plain','text/markdown','application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/msword'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(!['txt','md','pdf','docx','doc'].includes(ext)){ alert(`"${file.name}" — unsupported format. Use PDF, TXT, MD, or DOCX.`); continue; }
+    await ingestKBFile(file);
+  }
+}
+
+async function ingestKBFile(file){
+  const fileId = Date.now() + Math.random().toString(36).slice(2);
+  const fileEntry = {
+    id: fileId,
+    name: file.name,
+    size: file.size,
+    type: file.name.split('.').pop().toLowerCase(),
+    status: 'processing',
+    text: '',
+    cardCount: 0,
+    addedAt: new Date().toISOString()
+  };
+  kbState.files.push(fileEntry);
+  saveKB();
+  renderKBLibrary();
+  showKBProcessing(true, `Reading "${file.name}"…`);
+
+  try {
+    // Extract text
+    let text = '';
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if(ext === 'pdf'){
+      text = await extractPDFText(file);
+    } else if(ext === 'docx' || ext === 'doc'){
+      text = await extractDOCXText(file);
+    } else {
+      text = await file.text();
+    }
+
+    // Truncate to ~12000 chars for API
+    const truncated = text.slice(0, 12000);
+    fileEntry.text = truncated;
+    fileEntry.status = 'processing';
+    saveKB();
+
+    showKBProcessing(true, `Generating knowledge cards from "${file.name}"…`);
+
+    // Call Claude to extract Q&A cards
+    const cards = await extractCardsFromText(truncated, file.name);
+    cards.forEach(c => { c.fileId = fileId; c.src = file.name; });
+    kbState.cards = [...kbState.cards, ...cards];
+    fileEntry.cardCount = cards.length;
+    fileEntry.status = 'done';
+
+  } catch(err) {
+    console.error('KB ingest error:', err);
+    fileEntry.status = 'error';
+    fileEntry.statusMsg = err.message || 'Processing failed';
+  }
+
+  saveKB();
+  showKBProcessing(false);
+  renderKBLibrary();
+  renderKBCards();
+}
+
+async function extractPDFText(file){
+  // Use FileReader to get base64, then send to Claude for extraction
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2000,
+            messages: [{
+              role: 'user',
+              content: [{
+                type: 'document',
+                source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+              }, {
+                type: 'text',
+                text: 'Please extract and return all meaningful text content from this document. Return only the raw text, no commentary.'
+              }]
+            }]
+          })
+        });
+        const data = await res.json();
+        resolve(data.content?.[0]?.text || '');
+      } catch(err){ reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Failed to read PDF'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function extractDOCXText(file){
+  // Extract raw text from DOCX using FileReader (read as text fallback)
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // DOCX is binary XML — try to extract visible text via regex on raw string
+      try {
+        const raw = e.target.result;
+        // Pull w:t content from XML
+        const matches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+        const text = matches.map(m => m.replace(/<[^>]+>/g,'')).join(' ').replace(/\s+/g,' ').trim();
+        resolve(text || 'Could not extract DOCX text. Try converting to PDF or TXT.');
+      } catch(err){ resolve('DOCX extraction failed.'); }
+    };
+    reader.onerror = () => reject(new Error('Failed to read DOCX'));
+    reader.readAsBinaryString(file);
+  });
+}
+
+async function extractCardsFromText(text, filename){
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: `You are an expert at creating educational flashcard Q&A pairs from fraternity and organization documents. Extract the most important, specific, testable facts and generate Q&A pairs. Return ONLY a valid JSON array, no markdown, no commentary. Format: [{"q":"question","a":"answer"},...]`,
+        messages: [{
+          role: 'user',
+          content: `Create 8-12 flashcard Q&A pairs from this Omega Psi Phi related document. Focus on specific facts: names, dates, events, traditions, principles, notable members, chapter info, rituals, history. Make each Q specific and each A precise.\n\nDocument: "${filename}"\n\nContent:\n${text}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '[]';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch(e){
+    console.warn('Card extraction failed:', e);
+    // Fallback: create a single card from the text summary
+    return [{ q: `What is the main subject of "${filename}"?`, a: text.slice(0, 300) + (text.length > 300 ? '…' : '') }];
+  }
+}
+
+function showKBProcessing(show, msg=''){
+  const el = document.getElementById('kb-processing');
+  const msgEl = document.getElementById('kb-processing-msg');
+  if(el) el.style.display = show ? 'block' : 'none';
+  if(msgEl && msg) msgEl.textContent = msg;
+}
+
+function deleteKBFile(fileId){
+  if(!confirm('Remove this file and all its generated cards from your knowledge base?')) return;
+  kbState.files = kbState.files.filter(f => f.id !== fileId);
+  kbState.cards = kbState.cards.filter(c => c.fileId !== fileId);
+  saveKB();
+  renderKBLibrary();
+  renderKBCards();
+}
+
+function renderKBLibrary(){
+  const el = document.getElementById('kb-file-library');
+  const countEl = document.getElementById('kb-file-count');
+  if(!el) return;
+  if(countEl) countEl.textContent = `${kbState.files.length} file${kbState.files.length!==1?'s':''}`;
+
+  const icons = {pdf:'📄', txt:'📝', md:'📝', docx:'📋', doc:'📋'};
+  const statusCls = {processing:'kb-status-processing', done:'kb-status-done', error:'kb-status-error'};
+  const statusLbl = {processing:'Processing…', done:'Ready', error:'Error'};
+
+  el.innerHTML = kbState.files.length ? kbState.files.map(f=>`
+    <div class="kb-file-item">
+      <div class="kb-file-icon">${icons[f.type]||'📄'}</div>
+      <div class="kb-file-info">
+        <div class="kb-file-name" title="${f.name}">${f.name}</div>
+        <div class="kb-file-meta">${(f.size/1024).toFixed(1)}KB · ${f.cardCount||0} cards generated · ${new Date(f.addedAt).toLocaleDateString()}</div>
+      </div>
+      <span class="kb-file-status ${statusCls[f.status]||''}">${f.statusMsg||statusLbl[f.status]||f.status}</span>
+      <button class="kb-del-btn" onclick="deleteKBFile('${f.id}')" title="Remove file">✕</button>
+    </div>`).join('') : `<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">No files uploaded yet. Drop a file above to begin building your private knowledge base.</div>`;
+}
+
+function renderKBCards(){
+  const section = document.getElementById('kb-cards-section');
+  const list = document.getElementById('kb-cards-list');
+  if(!section||!list) return;
+  if(!kbState.cards.length){ section.style.display='none'; return; }
+  section.style.display='block';
+  list.innerHTML = kbState.cards.map((c,i)=>`
+    <div class="kb-card-item">
+      <div class="kb-card-q">${c.q}</div>
+      <div class="kb-card-a">${c.a}</div>
+      <div class="kb-card-src">from: ${c.src||'uploaded file'}</div>
+    </div>`).join('');
+}
+
+// ── INTEGRATE KB CARDS INTO FLASHCARD SYSTEM ──
+function getAllCardsIncludingKB(){
+  const base = Object.values(OMEGA_DATA).flat();
+  const kbCards = kbState.cards.map(c=>({q:c.q, a:c.a, cat:'personal'}));
+  return [...base, ...kbCards];
+}
+
+// ── INTEGRATE KB INTO AI SCHOLAR CONTEXT ──
+function buildKBContext(){
+  if(!kbState.cards.length) return '';
+  const sample = kbState.cards.slice(0,20); // send up to 20 KB cards as context
+  return `\n\nThe user has also uploaded private documents to their personal knowledge base. Here are key facts extracted from those files:\n${sample.map(c=>`Q: ${c.q}\nA: ${c.a}`).join('\n\n')}`;
+}
+
+// ── GENERATE CUSTOM DAILY LESSON FROM KB ──
+async function generateKBLesson(){
+  if(!kbState.cards.length) return null;
+  const sample = kbState.cards.slice(0, Math.min(kbState.cards.length, 15));
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 600,
+        system: `You create engaging, educational daily lesson entries about Omega Psi Phi for a member studying the fraternity. Write in an inspiring, knowledgeable tone. Use **bold** for key terms. Keep to ~150 words.`,
+        messages:[{
+          role:'user',
+          content:`Based on these knowledge base facts, generate a compelling daily lesson. Return JSON only: {"cat":"string","title":"string","body":"string"}\n\nFacts:\n${sample.map(c=>`${c.q} → ${c.a}`).join('\n')}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content?.[0]?.text||'{}';
+    const lesson = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    return lesson.title ? {...lesson, fromKB: true} : null;
+  } catch(e){ return null; }
+}
+
+let omegaState = {
+  streak: 0,
+  lastStudyDate: '',
+  learnedLessons: [],
+  currentLessonIdx: 0,
+  fcCategory: 'founders',
+  fcIndex: 0,
+  fcFlipped: false,
+  quizScore: {right:0,total:0},
+  libCategory: 'all',
+  omegaNotes: '',
+  quizAnswered: false,
+  currentQuizCard: null,
+};
+
+function loadOmega(){
+  const r=localStorage.getItem('burhan-omega-v1');
+  if(!r)return;
+  try{Object.assign(omegaState,JSON.parse(r));}catch(e){}
+}
+function saveOmega(){localStorage.setItem('burhan-omega-v1',JSON.stringify(omegaState));}
+
+function saveOmegaNotes(){
+  omegaState.omegaNotes=document.getElementById('omega-notes').value;
+  saveOmega();
+}
+
+function getFilteredCards(){
+  const kbCards = kbState.cards.map(c=>({q:c.q,a:c.a,cat:'personal'}));
+  if(omegaState.fcCategory==='personal') return kbCards;
+  if(omegaState.fcCategory==='all') return [...Object.values(OMEGA_DATA).flat(), ...kbCards];
+  return OMEGA_DATA[omegaState.fcCategory]||[];
+}
+
+function getAllCards(){ return getAllCardsIncludingKB(); }
+
+function renderOmega(){
+  // streak check
+  const today=todayStr();
+  if(omegaState.lastStudyDate===today){
+    // already studied today
+  } else if(omegaState.lastStudyDate){
+    const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+    const yStr=yesterday.toISOString().slice(0,10);
+    if(omegaState.lastStudyDate!==yStr) omegaState.streak=0;
+  }
+  document.getElementById('omega-streak').textContent=omegaState.streak;
+
+  // daily lesson
+  renderDailyLesson();
+
+  // shared label map (used throughout this function)
+  const catLabels={founders:'Founders',principles:'Cardinal Principles',history:'History',traditions:'Traditions',notables:'Notable Ques',service:'Service & Uplift',personal:'📁 My Files',all:'All'};
+  const cats=['founders','principles','history','traditions','notables','service'];
+
+  // progress bars
+  const learned=omegaState.learnedLessons||[];
+  const allCards=getAllCards();
+  const mastered=allCards.filter(c=>learned.includes(c.q)).length;
+  const pct=allCards.length?Math.round((mastered/allCards.length)*100):0;
+
+  const barsEl=document.getElementById('omega-progress-bars');
+  if(barsEl){
+    let html=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span style="font-weight:600;">Overall Mastery</span><span style="font-family:var(--mono);color:var(--gold);">${pct}%</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%;"></div></div></div>`;
+    html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;">`;
+    cats.forEach(cat=>{
+      const cards=OMEGA_DATA[cat]||[];
+      const catMastered=cards.filter(c=>learned.includes(c.q)).length;
+      const catPct=cards.length?Math.round((catMastered/cards.length)*100):0;
+      html+=`<div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:var(--text-dim);">${catLabels[cat]}</span><span style="font-family:var(--mono);color:var(--gold);">${catPct}%</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${catPct}%;"></div></div></div>`;
+    });
+    html+=`</div>`;
+    barsEl.innerHTML=html;
+  }
+
+  // flashcard category pills
+  const fcCatsToShow = kbState.cards.length ? [...cats,'personal'] : cats;
+  const catRow=document.getElementById('fc-cat-row');
+  if(catRow){
+    catRow.innerHTML=fcCatsToShow.map(c=>`<button class="omega-cat ${omegaState.fcCategory===c?'active':''}" onclick="setFCCat('${c}')" style="${c==='personal'?'border-color:rgba(164,120,232,.4);color:var(--purple);':''}">${catLabels[c]}</button>`).join('');
+  }
+  renderFlashcard();
+
+  // library category pills
+  const libCatRow=document.getElementById('lib-cat-row');
+  const libCatsToShow = kbState.cards.length ? [...cats,'personal'] : cats;
+  if(libCatRow){
+    libCatRow.innerHTML=[['all','All'], ...libCatsToShow.map(c=>[c,catLabels[c]])].map(([c,l])=>`<button class="omega-cat ${omegaState.libCategory===c?'active':''}" onclick="setLibCat('${c}')" style="${c==='personal'?'border-color:rgba(164,120,232,.4);color:var(--purple);':''}">${l}</button>`).join('');
+  }
+  renderLibrary();
+
+  // KB section
+  renderKBLibrary();
+  renderKBCards();
+
+  // quiz score
+  document.getElementById('quiz-right').textContent=omegaState.quizScore.right;
+  document.getElementById('quiz-total').textContent=omegaState.quizScore.total;
+
+  // notes
+  const notesEl=document.getElementById('omega-notes');
+  if(notesEl&&omegaState.omegaNotes)notesEl.value=omegaState.omegaNotes;
+}
+
+function renderDailyLesson(){
+  const idx=omegaState.currentLessonIdx%DAILY_LESSONS.length;
+  const lesson=DAILY_LESSONS[idx];
+  document.getElementById('dl-eyebrow').textContent=`Lesson ${idx+1} of ${DAILY_LESSONS.length} · ${lesson.cat}`;
+  document.getElementById('dl-title').textContent=lesson.title;
+  document.getElementById('dl-body').innerHTML=lesson.body.replace(/\n/g,'<br/>');
+}
+
+function nextDailyLesson(){
+  omegaState.currentLessonIdx=(omegaState.currentLessonIdx+1)%DAILY_LESSONS.length;
+  markStudied();
+  saveOmega();
+  renderDailyLesson();
+}
+
+function markLessonLearned(){
+  markStudied();
+  const lesson=DAILY_LESSONS[omegaState.currentLessonIdx%DAILY_LESSONS.length];
+  if(!omegaState.learnedLessons.includes(lesson.title)) omegaState.learnedLessons.push(lesson.title);
+  omegaState.currentLessonIdx=(omegaState.currentLessonIdx+1)%DAILY_LESSONS.length;
+  saveOmega();
+  renderOmega();
+}
+
+function markStudied(){
+  const today=todayStr();
+  if(omegaState.lastStudyDate!==today){
+    const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+    const yStr=yesterday.toISOString().slice(0,10);
+    omegaState.streak=omegaState.lastStudyDate===yStr?omegaState.streak+1:1;
+    omegaState.lastStudyDate=today;
+  }
+  document.getElementById('omega-streak').textContent=omegaState.streak;
+}
+
+// FLASHCARDS
+function setFCCat(cat){
+  omegaState.fcCategory=cat;
+  omegaState.fcIndex=0;
+  omegaState.fcFlipped=false;
+  saveOmega();
+  renderOmega();
+}
+
+function renderFlashcard(){
+  const cards=getFilteredCards();
+  if(!cards.length)return;
+  const idx=omegaState.fcIndex%cards.length;
+  const card=cards[idx];
+  document.getElementById('fc-question').textContent=card.q;
+  document.getElementById('fc-answer').textContent=card.a;
+  document.getElementById('fc-counter').textContent=`${idx+1} / ${cards.length}`;
+  const fc=document.getElementById('flashcard');
+  if(fc)fc.classList.toggle('flipped',omegaState.fcFlipped);
+}
+
+function flipCard(){
+  omegaState.fcFlipped=!omegaState.fcFlipped;
+  markStudied();saveOmega();
+  const fc=document.getElementById('flashcard');
+  if(fc)fc.classList.toggle('flipped',omegaState.fcFlipped);
+}
+
+function nextCard(){
+  const cards=getFilteredCards();
+  omegaState.fcIndex=(omegaState.fcIndex+1)%cards.length;
+  omegaState.fcFlipped=false;
+  markStudied();saveOmega();renderFlashcard();
+}
+
+function prevCard(){
+  const cards=getFilteredCards();
+  omegaState.fcIndex=(omegaState.fcIndex-1+cards.length)%cards.length;
+  omegaState.fcFlipped=false;
+  saveOmega();renderFlashcard();
+}
+
+// QUIZ
+function startQuiz(){
+  const allCards=getAllCards();
+  if(!allCards.length)return;
+  const card=allCards[Math.floor(Math.random()*allCards.length)];
+  omegaState.currentQuizCard=card;
+  omegaState.quizAnswered=false;
+
+  // generate 3 wrong answers + 1 correct
+  const wrongPool=allCards.filter(c=>c.q!==card.q);
+  const shuffled=[...wrongPool].sort(()=>Math.random()-.5).slice(0,3);
+  const options=[...shuffled.map(c=>c.a),card.a].sort(()=>Math.random()-.5);
+
+  const qa=document.getElementById('quiz-area');
+  if(!qa)return;
+  qa.innerHTML=`<div class="quiz-question">${card.q}</div>`+
+    options.map((opt,i)=>`<button class="quiz-option" id="qopt-${i}" onclick="answerQuiz(${i},'${opt.replace(/'/g,"\\'")}','${card.a.replace(/'/g,"\\'")}',${options.length})">${opt}</button>`).join('')+
+    `<div class="quiz-feedback" id="quiz-feedback"></div>`;
+  markStudied();saveOmega();
+}
+
+function answerQuiz(i,chosen,correct,total){
+  if(omegaState.quizAnswered)return;
+  omegaState.quizAnswered=true;
+  omegaState.quizScore.total++;
+  const fb=document.getElementById('quiz-feedback');
+  for(let j=0;j<total;j++){
+    const btn=document.getElementById('qopt-'+j);
+    if(!btn)continue;
+    btn.disabled=true;
+    if(btn.textContent===correct)btn.classList.add('correct');
+    else if(j===i)btn.classList.add('wrong');
+  }
+  if(chosen===correct){
+    omegaState.quizScore.right++;
+    if(fb){fb.textContent='✓ Correct! Que Psi Phi!';fb.className='quiz-feedback qf-right';}
+    if(omegaState.currentQuizCard&&!omegaState.learnedLessons.includes(omegaState.currentQuizCard.q))
+      omegaState.learnedLessons.push(omegaState.currentQuizCard.q);
+  } else {
+    if(fb){fb.textContent=`✗ The correct answer: ${correct}`;fb.className='quiz-feedback qf-wrong';}
+  }
+  document.getElementById('quiz-right').textContent=omegaState.quizScore.right;
+  document.getElementById('quiz-total').textContent=omegaState.quizScore.total;
+  saveOmega();
+  // re-render progress
+  setTimeout(()=>{const pb=document.getElementById('omega-progress-bars');if(pb)renderOmega();},600);
+}
+
+// LIBRARY
+function setLibCat(cat){
+  omegaState.libCategory=cat;
+  saveOmega();renderLibrary();
+  // update pills
+  document.querySelectorAll('#lib-cat-row .omega-cat').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function renderLibrary(){
+  const baseCats=['founders','principles','history','traditions','notables','service'];
+  let filtered;
+  if(omegaState.libCategory==='personal'){
+    filtered = kbState.cards.map(c=>({...c,cat:'personal'}));
+  } else if(omegaState.libCategory==='all'){
+    filtered = [...Object.values(OMEGA_DATA).flat(), ...kbState.cards.map(c=>({...c,cat:'personal'}))];
+  } else {
+    filtered = (OMEGA_DATA[omegaState.libCategory]||[]);
+  }
+  const learned=omegaState.learnedLessons||[];
+  const el=document.getElementById('knowledge-library');
+  if(!el)return;
+  el.innerHTML=filtered.map(c=>`
+    <div class="know-card" onclick="markCardLearned('${c.q.replace(/'/g,"\\'")}')">
+      <div class="know-card-title">${c.q}</div>
+      <div class="know-card-body">${c.a}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+        <span class="know-card-tag">${c.cat}</span>
+        ${learned.includes(c.q)?'<span style="font-family:var(--mono);font-size:9px;color:var(--green);margin-left:auto;">✓ Learned</span>':'<span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:auto;">click to mark learned</span>'}
+      </div>
+    </div>`).join('');
+}
+
+function markCardLearned(q){
+  if(!omegaState.learnedLessons.includes(q)){
+    omegaState.learnedLessons.push(q);
+    markStudied();saveOmega();renderLibrary();
+    // re-render progress bars
+    const pb=document.getElementById('omega-progress-bars');if(pb)renderOmega();
+  }
+}
+
+// AI OMEGA SCHOLAR
+async function askOmegaScholar(){
+  const inp=document.getElementById('omega-ask-inp');
+  const q=inp.value.trim();if(!q)return;
+  inp.value='';
+
+  const log=document.getElementById('omega-chat-log');
+  const userBubble=document.createElement('div');
+  userBubble.className='chat-bubble user';
+  userBubble.textContent=q;
+  log.appendChild(userBubble);
+
+  const typingBubble=document.createElement('div');
+  typingBubble.className='chat-bubble ai';
+  typingBubble.style.fontStyle='italic';
+  typingBubble.textContent='Que Psi Phi… thinking…';
+  log.appendChild(typingBubble);
+  log.scrollTop=log.scrollHeight;
+
+  markStudied();saveOmega();
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system:`You are the Omega Scholar — a deeply knowledgeable, proud expert on Omega Psi Phi Fraternity, Inc. You answer questions about the fraternity's history, founders (Edgar Amos Love, Oscar James Cooper, Frank Coleman, Ernest Everett Just), the Four Cardinal Principles (Manhood, Scholarship, Perseverance, Uplift), notable members (Carter G. Woodson, Langston Hughes, Jesse Jackson, Shaquille O'Neal, Tom Joyner and many others), chapter structure, traditions, service programs, Greek culture, and Black fraternal life broadly. You speak with pride, precision, and respect for the fraternity. Keep answers focused, informative, and inspiring. Use 'Que Psi Phi' or 'ΩΨΦ' naturally. Format with **bold** for key terms. Keep responses concise (under 200 words) and highly informative.${buildKBContext()}`,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'I was unable to retrieve that information. Try rephrasing your question, brother.';
+    // simple bold formatting
+    typingBubble.style.fontStyle='normal';
+    typingBubble.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<em>$1</em>').replace(/\n/g,'<br/>');
+  } catch(e){
+    typingBubble.textContent='Network error — check your connection and try again.';
+  }
+  log.scrollTop=log.scrollHeight;
+}
+
+</script>
+</body>
+</html>
